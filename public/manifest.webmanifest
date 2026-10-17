@@ -1,0 +1,15 @@
+{
+  "name": "Oficio",
+  "short_name": "Oficio",
+  "description": "Servicios para tu casa, cerca de ti.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f3ebdf",
+  "theme_color": "#c24e2a",
+  "lang": "es-MX",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
