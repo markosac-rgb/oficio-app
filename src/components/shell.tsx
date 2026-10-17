@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
 import { Bell, CalendarDays, CircleHelp, House, MessageCircle, Search, UserRound } from "lucide-react";
+import { LegalFooter } from "@/components/legal-footer";
 import { api } from "@/lib/api";
 import type { Account } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -99,7 +100,12 @@ export function Shell({ user, children }: { user: Account; children: React.React
               Sin conexión. Puedes ver lo último que cargó el celular; para pedir un servicio necesitas internet.
             </p>
           ) : null}
-          <main id="contenido">{children}</main>
+          <main id="contenido">
+            {children}
+            <div className="pb-24">
+              <LegalFooter />
+            </div>
+          </main>
           <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-sand pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgb(8_40_32/0.06)]" aria-label="Principal">
             <ul className="mx-auto grid max-w-3xl grid-cols-5">
               {NAV.map((item) => {

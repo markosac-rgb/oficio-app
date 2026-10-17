@@ -404,6 +404,22 @@ export function ProfileView() {
           </Button>
         </Card>
       ) : null}
+      <Card data-testid="legal-acceptance">
+        <h2 className="font-extrabold">Términos y privacidad</h2>
+        <p className="mt-2 text-sm leading-6">
+          {user.acceptedRulesAt
+            ? `Aceptaste los términos y el aviso de privacidad (versión ${user.acceptedLegalVersion || "sin versión"}) el ${formatWhen(user.acceptedRulesAt)}.`
+            : "Aún no hay una aceptación registrada en esta cuenta."}
+        </p>
+        <p className="text-sm leading-6">
+          Finalidades secundarias: {user.acceptedSecondaryPurposes ? "aceptadas" : "no aceptadas"}.
+        </p>
+        <p className="mt-2 text-sm">
+          <Link href="/terminos" className="font-extrabold text-clay underline">Términos y condiciones</Link>
+          {" · "}
+          <Link href="/privacidad" className="font-extrabold text-clay underline">Aviso de privacidad</Link>
+        </p>
+      </Card>
       <div className="grid gap-2">
         {user.role === "PROVIDER" ? <Button asChild variant="secondary"><Link href="/panel">Editar mi oficio</Link></Button> : null}
         {user.role === "ADMIN" ? <Button asChild><Link href="/admin">Panel de administración</Link></Button> : null}

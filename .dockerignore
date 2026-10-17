@@ -10,5 +10,6 @@ playwright-report
 e2e
 coverage
 *.md
+!docs/legal/*.md
 .env
 .env.*

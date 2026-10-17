@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { SIMPLIFIED_NOTICE } from "@/lib/legal-copy";
 import { useSession } from "@/components/session";
+import { LegalFooter } from "@/components/legal-footer";
 import { DemoBanner } from "@/components/states";
 import { Button, Field, Input } from "@/components/ui";
 
@@ -50,6 +52,7 @@ export function WelcomeScreen() {
         <Link href="/entrar" data-testid="go-login" className="block text-center text-base font-extrabold text-clay">
           Ya tengo cuenta
         </Link>
+        <LegalFooter tone="light" />
       </div>
     </main>
   );
@@ -68,6 +71,8 @@ export function LoginScreen() {
   const [demoCode, setDemoCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [accepted, setAccepted] = useState(false);
+  const [secondary, setSecondary] = useState(false);
   const next = safeNext(params.get("next"));
   const googleError = params.get("error");
 
@@ -168,27 +173,30 @@ export function LoginScreen() {
         </form>
       ) : null}
       {mode === "google" ? (
-        googleReady ? (
-          <div className="mt-4 space-y-3">
-            <p className="text-sm leading-5 text-muted">Te llevamos a Google y regresas a Oficio. No guardamos tu contraseña de Google.</p>
-            <Button asChild className="w-full">
-              <a href="/api/auth/google/start?role=CLIENT">Continuar con Google como cliente</a>
-            </Button>
-            <Button asChild variant="secondary" className="w-full">
-              <a href="/api/auth/google/start?role=PROVIDER">Continuar con Google como proveedor</a>
-            </Button>
-          </div>
-        ) : (
-          <div className="mt-4 space-y-3">
-            <DemoBanner>Este botón no abre Google. Entra a una cuenta demo fija.</DemoBanner>
-            <Button className="w-full" data-testid="google-client" disabled={busy} onClick={() => void enter("/api/auth/google", { role: "CLIENT" })}>
-              Continuar con Google como cliente (simulado)
-            </Button>
-            <Button className="w-full" variant="secondary" data-testid="google-provider" disabled={busy} onClick={() => void enter("/api/auth/google", { role: "PROVIDER" })}>
-              Continuar con Google como proveedor (simulado)
-            </Button>
-          </div>
-        )
+        <div className="mt-4 space-y-3">
+          <LegalChecks accepted={accepted} secondary={secondary} onAccepted={setAccepted} onSecondary={setSecondary} />
+          {googleReady ? (
+            <>
+              <p className="text-sm leading-5 text-muted">Te llevamos a Google y regresas a Oficio. No guardamos tu contraseña de Google. Si ya tenías cuenta, no cambiamos la aceptación que ya estaba guardada.</p>
+              <Button className="w-full" disabled={busy} onClick={() => startGoogle("CLIENT")}>
+                Continuar con Google como cliente
+              </Button>
+              <Button className="w-full" variant="secondary" disabled={busy} onClick={() => startGoogle("PROVIDER")}>
+                Continuar con Google como proveedor
+              </Button>
+            </>
+          ) : (
+            <>
+              <DemoBanner>Este botón no abre Google. Entra a una cuenta demo fija.</DemoBanner>
+              <Button className="w-full" data-testid="google-client" disabled={busy} onClick={() => startSimulatedGoogle("CLIENT")}>
+                Continuar con Google como cliente (simulado)
+              </Button>
+              <Button className="w-full" variant="secondary" data-testid="google-provider" disabled={busy} onClick={() => startSimulatedGoogle("PROVIDER")}>
+                Continuar con Google como proveedor (simulado)
+              </Button>
+            </>
+          )}
+        </div>
       ) : null}
       <details className="mt-6 rounded-2xl bg-white p-3" data-testid="demo-accounts">
         <summary className="cursor-pointer font-extrabold">Cuentas demo</summary>
@@ -201,8 +209,26 @@ export function LoginScreen() {
       <p className="mt-6 text-center text-base">
         ¿Aún no tienes cuenta? <Link href="/registro?rol=cliente" className="font-extrabold text-clay">Regístrate</Link>
       </p>
+      <LegalFooter />
     </main>
   );
+
+  function startGoogle(role: "CLIENT" | "PROVIDER") {
+    if (!accepted) {
+      setError("Acepta los términos y condiciones y el aviso de privacidad para continuar.");
+      return;
+    }
+    const params = new URLSearchParams({ role, acepto: "1", secundarias: secondary ? "1" : "0" });
+    window.location.href = `/api/auth/google/start?${params.toString()}`;
+  }
+
+  function startSimulatedGoogle(role: "CLIENT" | "PROVIDER") {
+    if (!accepted) {
+      setError("Acepta los términos y condiciones y el aviso de privacidad para continuar.");
+      return;
+    }
+    void enter("/api/auth/google", { role, acceptedRules: true, acceptedSecondaryPurposes: secondary });
+  }
 }
 
 export function RegisterScreen() {
@@ -216,6 +242,7 @@ export function RegisterScreen() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [accepted, setAccepted] = useState(false);
+  const [secondary, setSecondary] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -236,11 +263,15 @@ export function RegisterScreen() {
         className="mt-4 space-y-3"
         onSubmit={(event) => {
           event.preventDefault();
+          if (!accepted) {
+            setError("Acepta los términos y condiciones y el aviso de privacidad para crear la cuenta.");
+            return;
+          }
           setBusy(true);
           setError("");
           void api("/api/auth/register", {
             method: "POST",
-            body: JSON.stringify({ role, name, email, phone, password, acceptedRules: accepted }),
+            body: JSON.stringify({ role, name, email, phone, password, acceptedRules: true, acceptedSecondaryPurposes: secondary }),
           })
             .then(() => refresh())
             .then(() => router.push("/inicio"))
@@ -261,13 +292,50 @@ export function RegisterScreen() {
         <Field label="Contraseña" hint="Mínimo 8 caracteres.">
           <Input data-testid="reg-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
         </Field>
-        <label className="flex items-start gap-2 text-sm leading-5">
-          <input data-testid="reg-rules" type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} className="mt-1 h-5 w-5" />
-          <span>Acepto las reglas de cancelación, pagos y aclaraciones. Las puedo leer en Ayuda.</span>
-        </label>
+        <section data-testid="aviso-simplificado" className="rounded-2xl bg-white p-3 text-sm leading-6">
+          <h2 className="font-extrabold">Aviso de privacidad simplificado</h2>
+          {SIMPLIFIED_NOTICE.map((paragraph) => (
+            <p key={paragraph.slice(0, 24)} className="mt-2">{paragraph}</p>
+          ))}
+        </section>
+        <LegalChecks accepted={accepted} secondary={secondary} onAccepted={setAccepted} onSecondary={setSecondary} rulesTestId="reg-rules" secondaryTestId="reg-secondary" />
         <Button data-testid="reg-submit" className="w-full" disabled={busy}>Crear cuenta</Button>
       </form>
       <p className="mt-4 text-sm leading-5 text-muted">La administración no se crea desde aquí. Si ya tienes cuenta, entra con tu correo.</p>
+      <LegalFooter />
     </main>
+  );
+}
+
+function LegalChecks({
+  accepted,
+  secondary,
+  onAccepted,
+  onSecondary,
+  rulesTestId,
+  secondaryTestId,
+}: {
+  accepted: boolean;
+  secondary: boolean;
+  onAccepted: (value: boolean) => void;
+  onSecondary: (value: boolean) => void;
+  rulesTestId?: string;
+  secondaryTestId?: string;
+}) {
+  return (
+    <div className="space-y-3">
+      <label className="flex items-start gap-2 text-sm leading-5">
+        <input data-testid={rulesTestId} type="checkbox" checked={accepted} onChange={(event) => onAccepted(event.target.checked)} className="mt-1 h-5 w-5" />
+        <span>
+          Acepto los <Link href="/terminos" className="font-extrabold text-clay underline">términos y condiciones de uso</Link> y el <Link href="/privacidad" className="font-extrabold text-clay underline">aviso de privacidad</Link>, incluidas las finalidades primarias. Tengo 18 años o más.
+        </span>
+      </label>
+      <label className="flex items-start gap-2 text-sm leading-5">
+        <input data-testid={secondaryTestId} type="checkbox" checked={secondary} onChange={(event) => onSecondary(event.target.checked)} className="mt-1 h-5 w-5" />
+        <span>
+          Quiero las finalidades secundarias (novedades de la plataforma y mejora del producto con datos que me identifican). Puedo no marcar esta casilla. Si la marco, puedo pedir que dejen de usarse en el correo de privacidad.
+        </span>
+      </label>
+    </div>
   );
 }

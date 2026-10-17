@@ -10,6 +10,8 @@ export type Account = {
   authNote: string;
   suspended: boolean;
   acceptedRulesAt: string | null;
+  acceptedLegalVersion: string;
+  acceptedSecondaryPurposes: boolean;
   clientProfile: {
     street: string;
     neighborhood: string;

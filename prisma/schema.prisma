@@ -18,7 +18,9 @@ model User {
   authNote        String    @default("")
   isDemo          Boolean   @default(false)
   suspended       Boolean   @default(false)
-  acceptedRulesAt DateTime?
+  acceptedRulesAt            DateTime?
+  acceptedLegalVersion       String   @default("")
+  acceptedSecondaryPurposes  Boolean  @default(false)
   createdAt       DateTime  @default(now())
 
   clientProfile   ClientProfile?

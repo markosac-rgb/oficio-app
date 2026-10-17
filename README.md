@@ -138,6 +138,20 @@ La URL de retorno que usa el servidor es `<OFICIO_PUBLIC_URL>/api/auth/google/ca
 
 SQLite alcanza para una sola instancia. Si más adelante hay varios servidores, se puede cambiar el proveedor en `prisma/schema.prisma` (por ejemplo PostgreSQL) y generar una migración nueva. El resto del código usa Prisma.
 
+## Documentos legales
+
+Hay un borrador de términos y un aviso de privacidad (integral y simplificado) en `docs/legal/`, en Markdown y en Word. Las páginas públicas son `/terminos` y `/privacidad`. Arriba de cada una dice que un abogado debe revisarlo antes de publicarse.
+
+Quien opere la plataforma tiene que sustituir estos datos, que el borrador deja en blanco a propósito:
+
+- `[RAZÓN SOCIAL O NOMBRE DEL RESPONSABLE]`
+- `[DOMICILIO]`
+- `[RFC]`
+- `[CORREO DE CONTACTO DE PRIVACIDAD]`
+- `[FECHA DE ÚLTIMA ACTUALIZACIÓN]`
+
+La versión que guarda la aplicación al crear una cuenta es `2026-10-17`. No es la fecha oficial del responsable.
+
 ## App nativa más adelante
 
 La interfaz ya es móvil y se instala como PWA. Para envolverla con Capacitor:

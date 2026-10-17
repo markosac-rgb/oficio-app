@@ -30,6 +30,7 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/docs/legal ./docs/legal
 COPY --from=builder /app/src/lib/constants.ts ./src/lib/constants.ts
 COPY --from=builder /app/scripts/trust-proxy.cjs ./scripts/trust-proxy.cjs
 COPY --from=builder /app/scripts/render-start.sh ./scripts/render-start.sh

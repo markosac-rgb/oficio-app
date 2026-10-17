@@ -22,8 +22,35 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Alguien de confianza/ })).toBeVisible();
+  await expect(page.getByTestId("link-terminos")).toBeVisible();
+  await expect(page.getByTestId("link-privacidad")).toBeVisible();
   await shot(page, "01-bienvenida");
-  await page.getByTestId("go-login").click();
+
+  await page.getByTestId("link-terminos").click();
+  await expect(page.getByTestId("legal-banner")).toHaveText("Borrador — debe revisarlo un abogado antes de publicarse");
+  await expect(page.getByText("[RAZÓN SOCIAL O NOMBRE DEL RESPONSABLE]").first()).toBeVisible();
+  await page.goto("/privacidad");
+  await expect(page.getByRole("heading", { name: "Aviso de privacidad simplificado" })).toBeVisible();
+  await expect(page.getByTestId("legal-banner")).toBeVisible();
+  await expect(page.getByText("[CORREO DE CONTACTO DE PRIVACIDAD]").first()).toBeVisible();
+
+  const stampId = Date.now();
+  await page.goto("/registro?rol=cliente");
+  await expect(page.getByTestId("aviso-simplificado")).toBeVisible();
+  await page.getByTestId("reg-name").fill("Cliente Legal");
+  await page.getByTestId("reg-email").fill(`legal.${stampId}@oficio.demo`);
+  await page.getByTestId("reg-phone").fill(`55${String(stampId).slice(-8)}`);
+  await page.getByTestId("reg-password").fill("demo1234");
+  await page.getByTestId("reg-submit").click();
+  await expect(page.getByTestId("form-error")).toContainText("términos");
+  await page.getByTestId("reg-rules").check();
+  await page.getByTestId("reg-submit").click();
+  await page.waitForURL("**/inicio");
+  await page.getByTestId("nav-perfil").click();
+  await expect(page.getByTestId("legal-acceptance")).toContainText("2026-10-17");
+  await expect(page.getByTestId("legal-acceptance")).toContainText("no aceptadas");
+  await page.getByTestId("logout").click();
+  await page.waitForURL("**/entrar");
   await expect(page.getByTestId("demo-accounts")).toBeVisible();
   await shot(page, "02-entrar");
 

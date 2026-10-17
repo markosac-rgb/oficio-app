@@ -1,5 +1,6 @@
 export const PLATFORM_FEE_RATE = 0.1;
 export const POLICY_VERSION = "2026-10";
+export const LEGAL_VERSION = "2026-10-17";
 export const APP_NAME = "Oficio";
 
 export const CATEGORIES = [

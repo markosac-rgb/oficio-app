@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import type { Prisma } from "@prisma/client";
 import { demoGoogleAdapter } from "@/adapters/oauth";
 import { demoOtpAdapter } from "@/adapters/otp";
-import { DEFAULT_SCHEDULE, normalizePhone } from "@/lib/constants";
+import { DEFAULT_SCHEDULE, LEGAL_VERSION, normalizePhone } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import type { Account } from "@/lib/types";
 import { HttpError, asText, requiredText } from "./errors";
@@ -34,6 +34,8 @@ export function toAccount(user: AppUser): Account {
     authNote: user.authNote,
     suspended: user.suspended,
     acceptedRulesAt: user.acceptedRulesAt?.toISOString() ?? null,
+    acceptedLegalVersion: user.acceptedLegalVersion,
+    acceptedSecondaryPurposes: user.acceptedSecondaryPurposes,
     clientProfile: user.clientProfile
       ? {
           street: user.clientProfile.street,
@@ -148,7 +150,7 @@ export async function registerAccount(input: Record<string, unknown>) {
   const role = input.role === "PROVIDER" ? "PROVIDER" : input.role === "CLIENT" ? "CLIENT" : "";
   if (!role) throw new HttpError(400, "Elige si necesitas un servicio o si ofreces el tuyo.");
   if (input.acceptedRules !== true) {
-    throw new HttpError(400, "Acepta las reglas de cancelación, pagos y aclaraciones para crear la cuenta.");
+    throw new HttpError(400, "Acepta los términos y condiciones y el aviso de privacidad para crear la cuenta.");
   }
   const name = requiredText(input.name, "tu nombre", 3, 80);
   const emailRaw = asText(input.email).toLowerCase();
@@ -185,6 +187,8 @@ export async function registerAccount(input: Record<string, unknown>) {
       passwordHash: await bcrypt.hash(password, 8),
       isDemo: false,
       acceptedRulesAt: new Date(),
+      acceptedLegalVersion: LEGAL_VERSION,
+      acceptedSecondaryPurposes: input.acceptedSecondaryPurposes === true,
       clientProfile: role === "CLIENT" ? { create: {} } : undefined,
       providerProfile:
         role === "PROVIDER"
@@ -265,6 +269,8 @@ export async function establishGoogleUser(profile: {
   name: string;
   role: "CLIENT" | "PROVIDER";
   simulated: boolean;
+  legalAccepted?: boolean;
+  secondary?: boolean;
 }) {
   const email = profile.email.trim().toLowerCase();
   let user = await prisma.user.findUnique({ where: { email }, include: userInclude });
@@ -279,7 +285,9 @@ export async function establishGoogleUser(profile: {
         authNote: profile.simulated
           ? "Entrada con Google simulado. No se abrió una cuenta real de Google."
           : "Entró con Google.",
-        acceptedRulesAt: new Date(),
+        acceptedRulesAt: profile.legalAccepted ? new Date() : null,
+        acceptedLegalVersion: profile.legalAccepted ? LEGAL_VERSION : "",
+        acceptedSecondaryPurposes: profile.legalAccepted ? profile.secondary === true : false,
         clientProfile: profile.role === "CLIENT" ? { create: {} } : undefined,
         providerProfile:
           profile.role === "PROVIDER"
@@ -303,6 +311,9 @@ export async function establishGoogleUser(profile: {
 }
 
 export async function loginWithGoogle(input: Record<string, unknown>) {
+  if (input.acceptedRules !== true) {
+    throw new HttpError(400, "Acepta los términos y condiciones y el aviso de privacidad para continuar.");
+  }
   const role = input.role === "PROVIDER" ? "PROVIDER" : "CLIENT";
   const started = demoGoogleAdapter.start(role);
   const { user, token } = await establishGoogleUser({
@@ -310,6 +321,8 @@ export async function loginWithGoogle(input: Record<string, unknown>) {
     name: started.profile.name,
     role: started.profile.role,
     simulated: true,
+    legalAccepted: true,
+    secondary: input.acceptedSecondaryPurposes === true,
   });
   const jar = await cookieJar();
   jar.set(COOKIE, token, sessionCookie(MONTH));

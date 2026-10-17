@@ -35,10 +35,15 @@ function cookieOptions() {
 export function beginGoogleOAuth(request: NextRequest) {
   const role = request.nextUrl.searchParams.get("role") === "PROVIDER" ? "PROVIDER" : "CLIENT";
   const back = new URL("/entrar", publicOrigin(request));
+  if (request.nextUrl.searchParams.get("acepto") !== "1") {
+    back.searchParams.set("error", "Acepta los términos y el aviso de privacidad para continuar con Google.");
+    return NextResponse.redirect(back);
+  }
   if (!googleOAuthConfigured()) {
     back.searchParams.set("error", "Google no está conectado. El botón de demostración sigue disponible.");
     return NextResponse.redirect(back);
   }
+  const secondary = request.nextUrl.searchParams.get("secundarias") === "1" ? "1" : "0";
   const state = randomBytes(16).toString("hex");
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   url.searchParams.set("client_id", process.env.GOOGLE_CLIENT_ID || "");
@@ -48,7 +53,7 @@ export function beginGoogleOAuth(request: NextRequest) {
   url.searchParams.set("state", state);
   url.searchParams.set("prompt", "select_account");
   const response = NextResponse.redirect(url);
-  response.cookies.set(STATE_COOKIE, `${state}.${role}`, cookieOptions());
+  response.cookies.set(STATE_COOKIE, `${state}.${role}.${secondary}`, cookieOptions());
   return response;
 }
 
@@ -69,7 +74,7 @@ export async function finishGoogleOAuth(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const state = request.nextUrl.searchParams.get("state");
   const stored = request.cookies.get(STATE_COOKIE)?.value || "";
-  const [savedState, savedRole] = stored.split(".");
+  const [savedState, savedRole, savedSecondary] = stored.split(".");
   const role = savedRole === "PROVIDER" ? "PROVIDER" : "CLIENT";
   if (!code || !state || !savedState || state !== savedState) {
     return fail("La entrada con Google no coincidió. Intenta de nuevo.");
@@ -106,6 +111,8 @@ export async function finishGoogleOAuth(request: NextRequest) {
       name: profile.name || profile.email.split("@")[0] || "Cuenta Google",
       role,
       simulated: false,
+      legalAccepted: true,
+      secondary: savedSecondary === "1",
     });
     const cookie = sessionCookieHeader(token);
     session = { name: cookie.name, value: cookie.value, options: cookie.options };

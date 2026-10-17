@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { CATEGORIES, DEFAULT_SCHEDULE } from "../src/lib/constants";
+import { CATEGORIES, DEFAULT_SCHEDULE, LEGAL_VERSION } from "../src/lib/constants";
 
 const prisma = new PrismaClient();
 
@@ -17,7 +17,7 @@ async function main() {
 
   await prisma.user.upsert({
     where: { id: "user_ejemplo" },
-    update: { name: "Cliente de ejemplo", isDemo: true },
+    update: { name: "Cliente de ejemplo", isDemo: true, acceptedLegalVersion: LEGAL_VERSION },
     create: {
       id: "user_ejemplo",
       role: "CLIENT",
@@ -26,12 +26,13 @@ async function main() {
       isDemo: true,
       authNote: "Solo existe para reseñas de ejemplo ficticio. No tiene contraseña.",
       acceptedRulesAt: new Date(),
+      acceptedLegalVersion: LEGAL_VERSION,
     },
   });
 
   await prisma.user.upsert({
     where: { id: "user_ana" },
-    update: { name: "Ana López", passwordHash, isDemo: true, role: "CLIENT" },
+    update: { name: "Ana López", passwordHash, isDemo: true, role: "CLIENT", acceptedLegalVersion: LEGAL_VERSION },
     create: {
       id: "user_ana",
       role: "CLIENT",
@@ -41,6 +42,7 @@ async function main() {
       passwordHash,
       isDemo: true,
       acceptedRulesAt: new Date(),
+      acceptedLegalVersion: LEGAL_VERSION,
     },
   });
   await prisma.clientProfile.upsert({
@@ -62,7 +64,7 @@ async function main() {
 
   await prisma.user.upsert({
     where: { id: "user_admin" },
-    update: { name: "Administrador Demo", passwordHash, isDemo: true, role: "ADMIN" },
+    update: { name: "Administrador Demo", passwordHash, isDemo: true, role: "ADMIN", acceptedLegalVersion: LEGAL_VERSION },
     create: {
       id: "user_admin",
       role: "ADMIN",
@@ -72,6 +74,7 @@ async function main() {
       passwordHash,
       isDemo: true,
       acceptedRulesAt: new Date(),
+      acceptedLegalVersion: LEGAL_VERSION,
     },
   });
 
@@ -530,6 +533,7 @@ async function main() {
         role: "PROVIDER",
         isDemo: "isDemo" in provider,
         passwordHash: "isDemo" in provider ? passwordHash : null,
+        acceptedLegalVersion: LEGAL_VERSION,
       },
       create: {
         id: provider.userId,
@@ -540,6 +544,7 @@ async function main() {
         isDemo: "isDemo" in provider,
         passwordHash: "isDemo" in provider ? passwordHash : null,
         acceptedRulesAt: new Date(),
+        acceptedLegalVersion: LEGAL_VERSION,
         authNote: "isDemo" in provider ? "Cuenta demo para entrar al panel de proveedor." : "Usuario ficticio de ejemplo. Sin contraseña.",
       },
     });
