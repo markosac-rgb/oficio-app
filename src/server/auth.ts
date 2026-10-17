@@ -68,6 +68,18 @@ async function cookieJar() {
   return cookies();
 }
 
+function sessionCookie(maxAge: number) {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    // En producción la app se publica por HTTPS (túnel o proxy). La marca
+    // Secure la interpreta el navegador, no el salto HTTP interno del proxy.
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge,
+  };
+}
+
 export async function createSession(userId: string) {
   const token = randomBytes(32).toString("hex");
   await prisma.session.create({
@@ -79,13 +91,7 @@ export async function createSession(userId: string) {
     },
   });
   const jar = await cookieJar();
-  jar.set(COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: MONTH,
-  });
+  jar.set(COOKIE, token, sessionCookie(MONTH));
 }
 
 export async function clearSession() {
@@ -94,7 +100,7 @@ export async function clearSession() {
   if (token) {
     await prisma.session.deleteMany({ where: { tokenHash: sha256(token) } });
   }
-  jar.set(COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+  jar.set(COOKIE, "", sessionCookie(0));
 }
 
 export async function getCurrentUser(): Promise<AppUser | null> {

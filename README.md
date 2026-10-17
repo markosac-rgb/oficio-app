@@ -87,6 +87,18 @@ npm start
 
 `npm start` escucha en el puerto 43123. En producción define `DATABASE_URL` (por ejemplo `file:/datos/oficio.db`) y sirve la app por HTTPS. La cookie de sesión se marca segura cuando `NODE_ENV=production`.
 
+### Paquete para un servidor sin el repositorio
+
+`node scripts/make-bundle.mjs` genera `oficio-bundle.tar.gz`: build standalone, archivos estáticos, el motor de Prisma para Linux x86_64 (`debian-openssl-3.0.x`), la base ya migrada y con las cuentas demo, y `start.sh`. En la otra máquina solo hace falta Node:
+
+```bash
+tar -xzf oficio-bundle.tar.gz
+cd oficio
+./start.sh
+```
+
+Escucha en `0.0.0.0` y en el puerto de `PORT` (43123 si no lo defines). La base del paquete es `data/oficio.db`. Detrás de un túnel HTTPS el proxy debe reenviar el host público en `Host` o en `X-Forwarded-Host`, y `X-Forwarded-Proto: https`. Si el proxy deja `Host` en una dirección interna, `trust-proxy.cjs` usa el host público para que Next no bloquee el origen.
+
 SQLite alcanza para una sola instancia. Si más adelante hay varios servidores, se puede cambiar el proveedor en `prisma/schema.prisma` (por ejemplo PostgreSQL) y generar una migración nueva. El resto del código usa Prisma.
 
 ## App nativa más adelante

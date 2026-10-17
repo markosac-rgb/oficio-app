@@ -41,6 +41,10 @@ yarn-error.log*
 /prisma/*.db-wal
 /prisma/*.db-shm
 
+# paquete de producción (el tar vive en artifacts)
+/.bundle-stage
+/.bundle-db
+
 # vercel
 .vercel
 
