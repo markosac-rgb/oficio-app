@@ -4,6 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { SuccessBanner, useCelebration } from "@/components/celebrate";
 import { ADVANCE_LABEL, PAYMENT_METHODS, STATUS_LABEL, STATUS_ORDER, breakdown } from "@/lib/constants";
 import { api, ApiError } from "@/lib/api";
 import { formatWhen, mxn } from "@/lib/format";
@@ -45,7 +46,7 @@ export function RequestsView() {
 
   return (
     <div className="px-4 pt-4 pb-28">
-      <h1 className="text-2xl font-extrabold">Solicitudes</h1>
+      <h1 className="text-2xl font-extrabold">Reservas</h1>
       <p className="mt-1 text-muted">{user?.role === "PROVIDER" ? "Trabajos que te pidieron o que están en tu zona." : "Tus servicios, del pedido a la reseña."}</p>
       <div className="mt-4 space-y-3">
         {error ? <ErrorState message={error} onRetry={load} /> : null}
@@ -76,15 +77,15 @@ function Timeline({ request }: { request: RequestDetail }) {
   const visual = request.status === "QUOTED" && request.selectedQuoteId ? "CONFIRMED" : request.status;
   const current = STATUS_ORDER.indexOf(visual as (typeof STATUS_ORDER)[number]);
   return (
-    <ol className="space-y-2">
+    <ol className="space-y-3">
       {STATUS_ORDER.map((step, index) => {
         const state = index < current ? "Hecho" : index === current ? "Ahora" : "Después";
         const label = step === "CONFIRMED" && request.status === "QUOTED" && request.selectedQuoteId ? "Confirmar cita" : STATUS_LABEL[step];
         return (
           <li key={step} className="flex items-center gap-3">
-            <span className={`grid h-7 w-7 place-items-center rounded-full text-xs font-extrabold ${index <= current ? "bg-clay text-white" : "bg-line text-muted"}`}>{index + 1}</span>
+            <span className={`grid h-8 w-8 place-items-center rounded-full text-xs font-extrabold ${index < current ? "bg-leaf text-white" : index === current ? "bg-clay text-white" : "bg-line text-muted"}`}>{index < current ? "✓" : index + 1}</span>
             <span className="font-bold">{label}</span>
-            <span className="text-sm text-muted">{state}</span>
+            <span className={`rounded-full px-2 py-0.5 text-xs font-extrabold ${index === current ? "bg-clay text-white" : "text-muted"}`}>{state}</span>
           </li>
         );
       })}
@@ -107,6 +108,8 @@ export function RequestDetailView({ id }: { id: string }) {
   const [reason, setReason] = useState("");
   const [report, setReport] = useState("");
   const [reportDone, setReportDone] = useState("");
+  const party = useCelebration();
+  const [doneParty, setDoneParty] = useState<string | null>(null);
 
   function load(silent = false) {
     api<RequestDetail>(`/api/requests/${id}`)
@@ -131,6 +134,7 @@ export function RequestDetailView({ id }: { id: string }) {
 
   return (
     <div className="px-4 pt-4 pb-32">
+      <SuccessBanner kind={party || doneParty} />
       <p className="text-sm font-extrabold text-clay">{request.categoryName}</p>
       <h1 className="text-2xl font-extrabold">{request.title}</h1>
       <p className="mt-1 text-lg font-extrabold">{statusHeadline(request.status, request.selectedQuoteId)}</p>
@@ -279,7 +283,10 @@ export function RequestDetailView({ id }: { id: string }) {
           className="mt-4 w-full"
           data-testid="status-next"
           data-next={request.permissions.nextStatus}
-          onClick={() => void api(`/api/requests/${id}/status`, { method: "POST" }).then(() => load())}
+          onClick={() => void api(`/api/requests/${id}/status`, { method: "POST" }).then(() => {
+            if (request.permissions.nextStatus === "COMPLETED") setDoneParty("done");
+            load();
+          })}
         >
           {ADVANCE_LABEL[request.permissions.nextStatus] ?? "Actualizar estado"}
         </Button>
@@ -323,6 +330,7 @@ export function RequestDetailView({ id }: { id: string }) {
               void api(`/api/quotes/${acceptId}/accept`, { method: "POST" })
                 .then(() => {
                   setAcceptId(null);
+                  setDoneParty("quote");
                   load();
                 })
                 .catch((reasonError: unknown) => setFormError(errorText(reasonError)));

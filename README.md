@@ -110,9 +110,12 @@ Variables en Render:
 | `DATABASE_URL` | `file:/tmp/oficio.db` |
 | `NODE_ENV` | `production` |
 | `OFICIO_TRUST_ORIGIN` | `1` |
+| `OFICIO_DEMO_DATA` | `1` por defecto. Con `0`, el arranque oculta los perfiles de ejemplo hasta que un admin los vuelva a mostrar |
 | `OFICIO_PUBLIC_URL` | `https://oficio-app.onrender.com` (hace falta si activas Google) |
 | `GOOGLE_CLIENT_ID` | opcional |
 | `GOOGLE_CLIENT_SECRET` | opcional |
+
+Un administrador puede ocultar los perfiles de ejemplo en Administración. Mientras se muestran, la franja de cifras y las tarjetas dicen «Datos de ejemplo». Los números salen de la base: una cuenta real los aumenta. Si los ejemplos se ocultan, la franja cuenta solo personas reales.
 
 La revisión de salud es `GET /api/health`. Render termina HTTPS y manda `X-Forwarded-Proto` y el host público. La cookie de sesión sale con `Secure`.
 

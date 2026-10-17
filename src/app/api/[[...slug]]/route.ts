@@ -16,8 +16,10 @@ import {
   addDocument,
   addReview,
   addWorkPhoto,
+  adminDemoSettings,
   adminReports,
   adminSetChecks,
+  adminSetDemoData,
   adminSetSuspended,
   adminSummary,
   adminUpdateReport,
@@ -120,6 +122,7 @@ async function dispatch(method: string, request: NextRequest, slug: string[]) {
       available: url.searchParams.get("available") === "1",
       emergency: url.searchParams.get("emergency") === "1",
       sort: (url.searchParams.get("sort") as "distance" | "price" | "rating" | null) ?? undefined,
+      ids: url.searchParams.get("ids")?.split(",").map((item) => item.trim()).filter(Boolean),
     });
   }
 
@@ -173,6 +176,11 @@ async function dispatch(method: string, request: NextRequest, slug: string[]) {
   if (serviceMatch && method === "DELETE") return deleteService(user, serviceMatch[1]);
 
   if (method === "GET" && path === "admin/summary") return adminSummary(user);
+  if (method === "GET" && path === "admin/settings") return adminDemoSettings(user);
+  if (method === "POST" && path === "admin/settings") {
+    const body = await readJson(request);
+    return adminSetDemoData(user, body.demoData !== false);
+  }
   if (method === "GET" && path === "admin/users") return { users: await adminUsers(user) };
   if (method === "GET" && path === "admin/requests") return { requests: await listRequests(user) };
   if (method === "GET" && path === "admin/reports") return { reports: await adminReports(user) };

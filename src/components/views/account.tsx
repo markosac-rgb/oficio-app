@@ -7,7 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import { CANCELLATION_RULES, CATEGORIES, DAY_KEYS, DAY_LABELS, INTEGRATIONS, PAYMENT_METHODS } from "@/lib/constants";
 import { formatPhone, formatWhen, mxn } from "@/lib/format";
 import { fileToJpegDataUrl } from "@/lib/images";
-import type { AdminUser, NotificationItem, ProviderCard, ReportItem, RequestSummary } from "@/lib/types";
+import type { Achievement, AdminUser, NotificationItem, ProviderCard, ReportItem, RequestSummary } from "@/lib/types";
 import { emptyAddress, LocationFields, type AddressValue } from "@/components/location-fields";
 import { ProviderCardView } from "@/components/provider-card";
 import { useSession } from "@/components/session";
@@ -44,14 +44,22 @@ type Dashboard = {
     schedule: Record<string, string>;
     services: { id: string; categoryId: string; title: string; description: string; priceType: string; priceMxn: number | null; unit: string }[];
     isExample: boolean;
+    rating: number | null;
+    reviewCount: number;
+    exampleReviewCount: number;
     name?: string;
   };
   incoming: RequestSummary[];
   active: RequestSummary[];
   history: RequestSummary[];
   earningsMxn: number;
+  earningsWeekMxn: number;
   feesShownMxn: number;
   completedJobs: number;
+  completedThisWeek: number;
+  streakDays: number;
+  goalTarget: number;
+  achievements: Achievement[];
   documents: { id: string; kind: string; label: string; status: string; note: string }[];
   trustNote: string;
 };
@@ -99,10 +107,24 @@ export function PanelView() {
       <p className="text-muted">{board.profile.profileReady ? "Ya puedes cotizar." : "Completa oficio, zona y un servicio para cotizar."}</p>
       {board.profile.isExample ? <ExampleTag /> : null}
       <Card>
-        <p className="text-sm text-muted">Ingresos de trabajos terminados</p>
-        <p className="text-3xl font-extrabold">{mxn(board.earningsMxn)} MXN</p>
-        <p className="text-sm leading-5 text-muted">Suma el precio del servicio en trabajos completados con método registrado. No es un depósito. La comisión mostrada ({mxn(board.feesShownMxn)} MXN) no se cobra en la demo. Trabajos contados: {board.completedJobs}.</p>
+        <p className="text-sm text-muted">Ingresos registrados esta semana</p>
+        <p className="text-3xl font-extrabold">{mxn(board.earningsWeekMxn)} MXN</p>
+        <p className="text-sm leading-5 text-muted">Desde el lunes, solo trabajos terminados con método registrado. No es un depósito. La comisión mostrada en total ({mxn(board.feesShownMxn)} MXN) no se cobra. Histórico: {mxn(board.earningsMxn)} MXN · {board.completedJobs} trabajos.</p>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-line">
+          <div className="h-full rounded-full bg-clay" style={{ width: `${Math.min(100, Math.round((board.completedThisWeek / Math.max(1, board.goalTarget)) * 100))}%` }} />
+        </div>
+        <p className="mt-2 text-sm font-bold">Meta de la semana: {board.completedThisWeek} de {board.goalTarget} trabajos. Racha: {board.streakDays} día{board.streakDays === 1 ? "" : "s"}.</p>
+        <p className="text-sm font-bold">{board.profile.rating == null ? "Sin reseñas todavía." : `${board.profile.rating} de 5 · ${board.profile.reviewCount} reseñas${board.profile.exampleReviewCount ? " (incluye ejemplos)" : ""}`}</p>
       </Card>
+      <div className="flex gap-2 overflow-x-auto">
+        {board.achievements.map((item) => (
+          <div key={item.id} className={`w-40 shrink-0 rounded-3xl border p-3 ${item.earned ? "border-clay bg-sand" : "border-line"}`}>
+            <p className="text-xs font-extrabold uppercase text-muted">{item.earned ? "Conseguido" : "Pendiente"}</p>
+            <p className="font-extrabold">{item.title}</p>
+            <p className="text-xs leading-4 text-muted">{item.detail}</p>
+          </div>
+        ))}
+      </div>
       <Card>
         <h2 className="font-extrabold">Disponibilidad</h2>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -295,7 +317,20 @@ export function ProfileView() {
     setName(user.name);
   }, [user]);
 
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    setDark(document.documentElement.classList.contains("dark"));
+  }, []);
+
   if (!user) return <LoadingBlock />;
+
+  const checks = [
+    { label: "Nombre", done: user.name.trim().length > 2 },
+    { label: "Correo", done: Boolean(user.email) },
+    { label: "Teléfono", done: Boolean(user.phone) },
+    { label: user.role === "CLIENT" ? "Ubicación" : "Cuenta lista", done: user.role === "CLIENT" ? Boolean(user.clientProfile?.locationSet) : true },
+  ];
+  const progress = Math.round((checks.filter((item) => item.done).length / checks.length) * 100);
 
   return (
     <div className="space-y-4 px-4 pt-4 pb-32">
@@ -307,7 +342,35 @@ export function ProfileView() {
         <p className="text-sm">{user.email}</p>
         <p className="text-sm">{formatPhone(user.phone)}</p>
         {user.authNote ? <p className="mt-2 text-sm leading-5">{user.authNote}</p> : null}
+        <div className="mt-4">
+          <div className="flex justify-between text-sm font-bold">
+            <span>Perfil</span>
+            <span>{progress}%</span>
+          </div>
+          <div className="mt-1 h-2 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+            <div className="h-full rounded-full bg-clay" style={{ width: `${progress}%` }} />
+          </div>
+          <ul className="mt-3 space-y-1 text-sm">
+            {checks.map((item) => (
+              <li key={item.label} className="flex items-center justify-between">
+                <span>{item.label}</span>
+                <span className="font-extrabold">{item.done ? "Listo" : "Falta"}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </Card>
+      <Button
+        variant="secondary"
+        onClick={() => {
+          const next = !dark;
+          setDark(next);
+          document.documentElement.classList.toggle("dark", next);
+          localStorage.setItem("oficio-theme", next ? "dark" : "light");
+        }}
+      >
+        {dark ? "Usar modo claro" : "Usar modo oscuro"}
+      </Button>
       <Field label="Tu nombre">
         <Input value={name} onChange={(event) => setName(event.target.value)} />
       </Field>
@@ -515,6 +578,7 @@ export function AdminView() {
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
+  const [demoData, setDemoData] = useState(true);
 
   function load() {
     if (user?.role !== "ADMIN") return;
@@ -523,12 +587,14 @@ export function AdminView() {
       api<{ users: AdminUser[] }>("/api/admin/users"),
       api<{ requests: RequestSummary[] }>("/api/admin/requests"),
       api<{ reports: ReportItem[] }>("/api/admin/reports"),
+      api<{ demoData: boolean }>("/api/admin/settings"),
     ])
-      .then(([nextSummary, nextUsers, nextRequests, nextReports]) => {
+      .then(([nextSummary, nextUsers, nextRequests, nextReports, settings]) => {
         setSummary(nextSummary);
         setUsers(nextUsers.users);
         setRequests(nextRequests.requests);
         setReports(nextReports.reports);
+        setDemoData(settings.demoData);
         setError("");
       })
       .catch((reason: unknown) => setError(errorText(reason)));
@@ -547,6 +613,28 @@ export function AdminView() {
     <div className="px-4 pt-4 pb-32">
       <h1 className="text-2xl font-extrabold">Administración</h1>
       <p className="mt-1 text-sm text-muted">Marcar verificado es una acción tuya. Nada se aprueba solo.</p>
+      <Card className="mt-3">
+        <p className="font-extrabold">Datos de ejemplo</p>
+        <p className="mt-1 text-sm leading-5 text-muted">
+          {demoData
+            ? "Los perfiles ficticios se muestran y las cifras los incluyen, con la etiqueta Datos de ejemplo. Las cuentas reales se suman a esos conteos."
+            : "Los perfiles de ejemplo están ocultos. Inicio, búsqueda y cifras usan solo cuentas reales."}
+        </p>
+        <Button
+          className="mt-3"
+          variant={demoData ? "secondary" : "default"}
+          data-testid="admin-demo-toggle"
+          onClick={() => {
+            void api<{ demoData: boolean }>("/api/admin/settings", { method: "POST", body: JSON.stringify({ demoData: !demoData }) })
+              .then((result) => {
+                setDemoData(result.demoData);
+                setNote(result.demoData ? "Los ejemplos vuelven a verse." : "Ocultamos los perfiles de ejemplo.");
+              });
+          }}
+        >
+          {demoData ? "Ocultar datos de ejemplo" : "Mostrar datos de ejemplo"}
+        </Button>
+      </Card>
       <div className="mt-3 grid grid-cols-3 gap-2 text-center">
         <Card><p className="text-2xl font-extrabold">{summary.openReports}</p><p className="text-xs font-bold">Reportes abiertos</p></Card>
         <Card><p className="text-2xl font-extrabold">{summary.users.PROVIDER ?? 0}</p><p className="text-xs font-bold">Proveedores</p></Card>

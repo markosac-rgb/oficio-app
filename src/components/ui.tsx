@@ -7,12 +7,12 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl font-extrabold transition active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50",
+        "pressable inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl font-extrabold transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         default: "bg-clay text-white hover:bg-clay-dark",
-        secondary: "border border-line bg-white text-ink hover:bg-paper",
+        secondary: "border border-line bg-sand text-ink hover:bg-paper",
         ghost: "text-ink hover:bg-white",
         leaf: "bg-leaf text-white hover:bg-leaf-dark",
         danger: "bg-danger text-white",
@@ -43,7 +43,7 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={cn(
-        "h-12 w-full rounded-2xl border border-line bg-white px-3 text-base text-ink placeholder:text-muted/80",
+        "h-12 w-full rounded-2xl border border-line bg-sand px-3 text-base text-ink placeholder:text-muted/80",
         props.className,
       )}
     />
@@ -55,7 +55,7 @@ export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
     <textarea
       {...props}
       className={cn(
-        "min-h-28 w-full rounded-2xl border border-line bg-white px-3 py-3 text-base text-ink placeholder:text-muted/80",
+        "min-h-28 w-full rounded-2xl border border-line bg-sand px-3 py-3 text-base text-ink placeholder:text-muted/80",
         props.className,
       )}
     />

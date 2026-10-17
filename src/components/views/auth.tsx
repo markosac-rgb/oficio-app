@@ -20,14 +20,14 @@ function messageOf(error: unknown) {
 export function WelcomeScreen() {
   const { user } = useSession();
   return (
-    <main id="contenido" className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 py-8">
-      <div className="flex items-center gap-2 text-xl font-extrabold">
+    <main id="contenido" className="mx-auto flex min-h-dvh w-full max-w-lg flex-col bg-gradient-to-b from-[#083d34] via-[#0e6b56] to-paper px-5 py-8">
+      <div className="flex items-center gap-2 text-xl font-extrabold text-white">
         <span className="grid h-10 w-10 place-items-center rounded-2xl bg-clay text-white">O</span>
         Oficio
       </div>
-      <p className="mt-10 text-sm font-extrabold tracking-wide text-clay uppercase">Servicios para tu casa</p>
-      <h1 className="mt-2 text-4xl leading-tight font-extrabold">Alguien de confianza para el trabajo de hoy.</h1>
-      <p className="mt-4 text-lg leading-7 text-muted">
+      <p className="mt-10 text-sm font-extrabold tracking-wide text-white/80 uppercase">Servicios para tu casa</p>
+      <h1 className="mt-2 text-4xl leading-tight font-extrabold text-white">Alguien de confianza para el trabajo de hoy.</h1>
+      <p className="mt-4 text-lg leading-7 text-white/85">
         Pide un plomero, electricista, pintor o quien haga falta. Comparas, acuerdas el precio y sigues el trabajo desde el celular.
       </p>
       <ul className="mt-6 space-y-2 text-base font-bold">

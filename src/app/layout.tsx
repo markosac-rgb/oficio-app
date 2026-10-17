@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Nunito } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { ServiceWorker } from "@/components/pwa";
 import { SessionProvider } from "@/components/session";
 import "./globals.css";
 
-const nunito = Nunito({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-nunito",
+  variable: "--font-jakarta",
   display: "swap",
 });
 
@@ -26,15 +26,20 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#c24e2a",
+  themeColor: "#083d34",
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es-MX" className={`${nunito.variable} h-full`}>
+    <html lang="es-MX" className={`${jakarta.variable} h-full`}>
       <body className="min-h-full antialiased">
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "try{if(localStorage.getItem('oficio-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}",
+          }}
+        />
         <a href="#contenido" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-white focus:p-3">
           Saltar al contenido
         </a>

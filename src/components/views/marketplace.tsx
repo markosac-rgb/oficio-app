@@ -17,10 +17,14 @@ import {
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { CATEGORIES, DAY_LABELS, DAY_KEYS } from "@/lib/constants";
+import { celebrate } from "@/components/celebrate";
+import { FeaturedCard, Row } from "@/components/featured-card";
+import { HomeHero, StatsStrip } from "@/components/home-hero";
+import { recentProviderIds, rememberProvider } from "@/components/recent";
 import { firstName, formatWhen, mxn, stars } from "@/lib/format";
 import { formatDistance, fuzzyCoord } from "@/lib/geo";
 import { fileToJpegDataUrl } from "@/lib/images";
-import type { ProviderProfile, RequestSummary } from "@/lib/types";
+import type { Account, Achievement, CategoryCount, MarketplaceStats, ProviderCard, ProviderProfile, RequestSummary } from "@/lib/types";
 import { ProviderCardView } from "@/components/provider-card";
 
 const NearbyMap = dynamic(() => import("@/components/maps").then((mod) => mod.NearbyMap), {
@@ -48,11 +52,16 @@ const ICONS = {
 type ClientHome = {
   role: "CLIENT";
   needsLocation: boolean;
-  categories: typeof CATEGORIES;
-  nearby: ProviderProfile[];
-  featured: ProviderProfile[];
+  categories: CategoryCount[];
+  stats: MarketplaceStats;
+  nearby: ProviderCard[];
+  featured: ProviderCard[];
+  favorites: ProviderCard[];
+  rehire: ProviderCard[];
   activeRequests: RequestSummary[];
+  achievements: Achievement[];
   locationKnown: boolean;
+  demoData: boolean;
 };
 
 type ProviderHome = {
@@ -60,9 +69,17 @@ type ProviderHome = {
   incoming: RequestSummary[];
   active: RequestSummary[];
   earningsMxn: number;
+  earningsWeekMxn: number;
+  completedThisWeek: number;
+  streakDays: number;
+  goalTarget: number;
+  achievements: Achievement[];
+  rating: number | null;
+  reviewCount: number;
   availableNow: boolean;
   profileReady: boolean;
   trade: string;
+  demoData: boolean;
 };
 
 type AdminHome = {
@@ -90,110 +107,186 @@ export function HomeView() {
   if (!data || !user) return <LoadingBlock label="Cargando tu inicio…" />;
 
   if (data.role === "ADMIN") {
+    const accounts = Object.values(data.summary.users).reduce((sum, n) => sum + n, 0);
     return (
-      <div className="px-4 pt-4 pb-28">
-        <h1 className="text-2xl font-extrabold">Hola, {firstName(user.name)}</h1>
-        <p className="mt-1 text-muted">Revisa personas, solicitudes y reportes.</p>
-        <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="pb-28">
+        <HomeHero name={firstName(user.name)} place="Administración" question="¿Qué hay que revisar?" placeholder="Buscar no aplica aquí" />
+        <div className="grid grid-cols-2 gap-3 px-4">
           <Card><p className="text-sm text-muted">Reportes abiertos</p><p className="text-3xl font-extrabold">{data.summary.openReports}</p></Card>
-          <Card><p className="text-sm text-muted">Cuentas</p><p className="text-3xl font-extrabold">{Object.values(data.summary.users).reduce((sum, n) => sum + n, 0)}</p></Card>
+          <Card><p className="text-sm text-muted">Cuentas en la base</p><p className="text-3xl font-extrabold">{accounts}</p></Card>
         </div>
-        <Button asChild className="mt-4 w-full"><Link href="/admin">Abrir panel de administración</Link></Button>
+        <div className="px-4">
+          <Button asChild className="mt-4 w-full"><Link href="/admin">Abrir panel de administración</Link></Button>
+        </div>
       </div>
     );
   }
 
   if (data.role === "PROVIDER") {
+    const goal = Math.min(100, Math.round((data.completedThisWeek / Math.max(1, data.goalTarget)) * 100));
     return (
-      <div className="px-4 pt-4 pb-28">
-        <h1 className="text-2xl font-extrabold">Hola, {firstName(user.name)}</h1>
-        <p className="mt-1 text-muted">{data.trade || "Completa tu oficio para recibir trabajos."}</p>
-        <Card className="mt-4">
-          <p className="text-sm font-bold text-muted">Ingresos de trabajos terminados</p>
-          <p className="text-3xl font-extrabold">{mxn(data.earningsMxn)} MXN</p>
-          <p className="mt-1 text-sm text-muted">No es dinero depositado por Oficio. En la demo no hay cobro.</p>
-          <p className="mt-2 font-bold">{data.availableNow ? "Apareces como disponible." : "No apareces como disponible."}</p>
-        </Card>
-        <Button asChild className="mt-4 w-full"><Link href="/panel">Ir a mi panel</Link></Button>
-        <section className="mt-6">
-          <h2 className="text-lg font-extrabold">Solicitudes nuevas</h2>
-          <div className="mt-3 space-y-3">
-            {data.incoming.length === 0 ? <EmptyState title="No hay solicitudes nuevas" body="Cuando alguien pida tu oficio cerca de tu zona, aparecerá aquí." /> : data.incoming.map((item) => <RequestLink key={item.id} item={item} />)}
-          </div>
-        </section>
+      <div className="pb-28">
+        <HomeHero name={firstName(user.name)} place={data.trade || "Tu zona"} question="¿Cómo va tu semana?" placeholder="Buscar un oficio" />
+        <div className="space-y-4 px-4">
+          <Card>
+            <p className="text-sm font-bold text-muted">Ingresos registrados esta semana</p>
+            <p className="text-3xl font-extrabold">{mxn(data.earningsWeekMxn)} MXN</p>
+            <p className="mt-1 text-sm leading-5 text-muted">Suma de trabajos terminados con método registrado desde el lunes. No es un depósito. En la demo no hay cobro. Total histórico: {mxn(data.earningsMxn)} MXN.</p>
+            <div className="mt-3">
+              <div className="flex justify-between text-sm font-bold">
+                <span>Meta: {data.goalTarget} trabajos</span>
+                <span>{data.completedThisWeek} de {data.goalTarget}</span>
+              </div>
+              <div className="mt-1 h-2 overflow-hidden rounded-full bg-line" aria-hidden="true">
+                <div className="h-full rounded-full bg-clay" style={{ width: `${goal}%` }} />
+              </div>
+            </div>
+            <p className="mt-3 font-bold">{data.streakDays === 0 ? "Racha: 0 días. Se arma con trabajos reales terminados." : `Racha: ${data.streakDays} día${data.streakDays === 1 ? "" : "s"} con un trabajo terminado.`}</p>
+            <p className="mt-1 text-sm font-bold">{data.rating == null ? "Aún sin reseñas." : `${data.rating} de 5 · ${data.reviewCount} reseñas`}</p>
+            <p className="mt-2 font-bold">{data.availableNow ? "Apareces como disponible." : "No apareces como disponible."}</p>
+          </Card>
+          <AchievementRow items={data.achievements} />
+          <Button asChild className="w-full"><Link href="/panel">Ir a mi panel</Link></Button>
+          <section>
+            <h2 className="text-lg font-extrabold">Solicitudes nuevas</h2>
+            <div className="mt-3 space-y-3">
+              {data.incoming.length === 0 ? <EmptyState title="No hay solicitudes nuevas" body="Cuando alguien pida tu oficio cerca de tu zona, aparecerá aquí." /> : data.incoming.map((item) => <RequestLink key={item.id} item={item} />)}
+            </div>
+          </section>
+        </div>
       </div>
     );
   }
 
+  return <ClientHomeView user={user} data={data} reload={load} />;
+}
+
+function ClientHomeView({ user, data, reload }: { user: Account; data: ClientHome; reload: () => void }) {
+  const [pull, setPull] = useState(0);
+  const [recent, setRecent] = useState<ProviderCard[]>([]);
+  const place = user.clientProfile?.locationSet ? user.clientProfile.neighborhood || user.clientProfile.city || "Tu zona" : "Agrega tu zona";
+
+  useEffect(() => {
+    const ids = recentProviderIds(user.id);
+    if (ids.length === 0) return;
+    api<{ providers: ProviderCard[] }>(`/api/providers?ids=${ids.join(",")}`)
+      .then((result) => {
+        const order = new Map(ids.map((id, index) => [id, index]));
+        setRecent(result.providers.slice().sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0)));
+      })
+      .catch(() => setRecent([]));
+  }, [user.id, data.featured.length]);
+
   return (
-    <div className="px-4 pt-4 pb-28">
-      <h1 className="text-2xl font-extrabold">Hola, {firstName(user.name)}</h1>
-      <p className="mt-1 text-base text-muted">
-        {user.clientProfile?.locationSet ? `${user.clientProfile.neighborhood || "Tu zona"} · CP ${user.clientProfile.postalCode}` : "Agrega tu colonia para ver gente cerca."}
-      </p>
-      <form action="/buscar" className="mt-4">
-        <label className="block text-sm font-extrabold" htmlFor="q-inicio">¿Qué necesitas?</label>
-        <div className="mt-1.5 flex gap-2">
-          <Input id="q-inicio" name="q" placeholder="Ejemplo: fuga, enchufe, pintar" />
-          <Button type="submit">Buscar</Button>
-        </div>
-      </form>
+    <div
+      className="pb-28"
+      onTouchStart={(event) => {
+        if (window.scrollY > 0) return;
+        event.currentTarget.dataset.pullStart = String(event.touches[0]?.clientY ?? 0);
+      }}
+      onTouchMove={(event) => {
+        const start = Number(event.currentTarget.dataset.pullStart || 0);
+        if (!start || window.scrollY > 0) return;
+        setPull(Math.max(0, Math.min(72, (event.touches[0]?.clientY ?? 0) - start)));
+      }}
+      onTouchEnd={() => {
+        if (pull > 56) reload();
+        setPull(0);
+      }}
+    >
+      {pull > 8 ? <p className="bg-[#083d34] px-4 py-2 text-center text-sm font-bold text-white">{pull > 56 ? "Suelta para actualizar" : "Desliza para actualizar"}</p> : null}
+      <HomeHero name={firstName(user.name)} place={place} question="¿Qué necesitas hoy?" placeholder="Buscar servicio u oficio" />
+      <StatsStrip stats={data.stats} />
       {data.needsLocation ? (
-        <Card className="mt-4">
-          <p className="font-extrabold">Falta tu ubicación</p>
-          <p className="mt-1 text-sm leading-5 text-muted">Con tu colonia o código postal te mostramos a quien sí llega.</p>
-          <Button asChild className="mt-3" variant="secondary"><Link href="/perfil">Agregar dirección</Link></Button>
-        </Card>
+        <div className="px-4 pt-4">
+          <Card>
+            <p className="font-extrabold">Falta tu ubicación</p>
+            <p className="mt-1 text-sm leading-5 text-muted">Con tu colonia o código postal te mostramos a quien sí llega.</p>
+            <Button asChild className="mt-3" variant="secondary"><Link href="/perfil">Agregar dirección</Link></Button>
+          </Card>
+        </div>
       ) : null}
-      <ol className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-extrabold">
-        <li className="rounded-2xl bg-sand p-2">1. Elige oficio</li>
-        <li className="rounded-2xl bg-sand p-2">2. Compara precio</li>
-        <li className="rounded-2xl bg-sand p-2">3. Confirma cita</li>
-      </ol>
-      <h2 className="mt-6 text-lg font-extrabold">Cerca de ti</h2>
-      <div className="mt-3">
-        <NearbyMap
-          testId="nearby-map"
-          client={
-            user.clientProfile?.locationSet
-              ? { lat: fuzzyCoord(user.clientProfile.lat), lng: fuzzyCoord(user.clientProfile.lng) }
-              : null
-          }
-          providers={data.nearby}
-        />
-      </div>
-      <h2 className="mt-6 text-lg font-extrabold">Oficios</h2>
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        {CATEGORIES.map((category) => {
-          const Icon = ICONS[category.icon as keyof typeof ICONS] ?? Wrench;
-          return (
-            <Link key={category.id} href={`/buscar?categoria=${category.id}`} className="rounded-3xl border border-line bg-sand p-3 text-center">
-              <Icon className="mx-auto text-clay" />
-              <span className="mt-1 block text-sm font-extrabold">{category.name}</span>
-            </Link>
-          );
-        })}
+      <section className="mt-5">
+        <div className="flex items-end justify-between px-4">
+          <h2 className="text-lg font-extrabold">Categorías populares</h2>
+          <Link href="/buscar" className="inline-flex min-h-11 items-center text-sm font-extrabold text-clay">Ver todas</Link>
+        </div>
+        <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto px-4 pb-1">
+          {data.categories.map((category) => {
+            const Icon = ICONS[category.icon as keyof typeof ICONS] ?? Wrench;
+            const pastel = ["#fde8e4", "#fff4d6", "#e7f1ff", "#e7f6ee", "#f3e8ff", "#e7f7f4", "#fff0e6", "#e8f4ff", "#fdecef"][category.name.length % 9];
+            return (
+              <Link key={category.id} href={`/buscar?categoria=${category.id}`} className="pressable w-[92px] shrink-0 text-center">
+                <span className="mx-auto grid h-[72px] w-[72px] place-items-center rounded-[22px]" style={{ background: pastel }}>
+                  <Icon className="text-ink" />
+                </span>
+                <span className="mt-2 block text-sm font-extrabold">{category.name}</span>
+                <span className="block text-xs font-semibold text-muted">{category.count} pros</span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+      {data.rehire.length > 0 ? (
+        <Row title="Vuelve a contratar" testId="rehire-row">
+          {data.rehire.map((provider) => <FeaturedCard key={provider.id} provider={provider} favorite={data.favorites.some((item) => item.id === provider.id)} />)}
+        </Row>
+      ) : null}
+      {data.favorites.length > 0 ? (
+        <Row title="Tus favoritos" href="/favoritos">
+          {data.favorites.map((provider) => <FeaturedCard key={provider.id} provider={provider} favorite />)}
+        </Row>
+      ) : null}
+      {recent.length > 0 ? (
+        <Row title="Visto recientemente">
+          {recent.map((provider) => <FeaturedCard key={provider.id} provider={provider} favorite={data.favorites.some((item) => item.id === provider.id)} />)}
+        </Row>
+      ) : null}
+      <Row title="Profesionales destacados" href="/buscar">
+        {data.featured.length === 0 ? <p className="text-sm text-muted">Cuando haya personas en tu zona, aparecerán aquí.</p> : data.featured.map((provider) => (
+          <FeaturedCard key={provider.id} provider={provider} favorite={data.favorites.some((item) => item.id === provider.id)} />
+        ))}
+      </Row>
+      <div className="mt-6 px-4">
+        <h2 className="text-lg font-extrabold">Cerca de ti</h2>
+        <div className="mt-3">
+          <NearbyMap
+            testId="nearby-map"
+            client={
+              user.clientProfile?.locationSet
+                ? { lat: fuzzyCoord(user.clientProfile.lat), lng: fuzzyCoord(user.clientProfile.lng) }
+                : null
+            }
+            providers={data.nearby}
+          />
+        </div>
       </div>
       {data.activeRequests.length > 0 ? (
-        <section className="mt-6">
+        <section className="mt-6 px-4">
           <h2 className="text-lg font-extrabold">Tus servicios en curso</h2>
           <div className="mt-3 space-y-3">{data.activeRequests.map((item) => <RequestLink key={item.id} item={item} />)}</div>
         </section>
-      ) : (
-        <p className="mt-6 text-sm text-muted">No tienes servicios en curso.</p>
-      )}
-      <section className="mt-6">
-        <h2 className="text-lg font-extrabold">Disponibles cerca</h2>
-        <div className="mt-3 space-y-3">
-          {data.nearby.length === 0 ? <EmptyState title="Nadie disponible con esos filtros" body="Prueba otra colonia o revisa más tarde." /> : data.nearby.map((provider) => <ProviderCardView key={provider.id} provider={provider} />)}
-        </div>
-      </section>
-      <section className="mt-6">
-        <h2 className="text-lg font-extrabold">Bien calificados</h2>
-        <div className="mt-3 space-y-3">
-          {data.featured.length === 0 ? <EmptyState title="Aún no hay reseñas cerca" body="Los perfiles de ejemplo traen opiniones marcadas como ficticias." /> : data.featured.map((provider) => <ProviderCardView key={provider.id} provider={provider} />)}
-        </div>
-      </section>
+      ) : null}
+      <div className="mt-6 px-4">
+        <AchievementRow items={data.achievements} />
+      </div>
+    </div>
+  );
+}
+
+function AchievementRow({ items }: { items: Achievement[] }) {
+  return (
+    <div>
+      <h2 className="text-lg font-extrabold">Logros</h2>
+      <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
+        {items.map((item) => (
+          <div key={item.id} className={`w-40 shrink-0 rounded-3xl border p-3 ${item.earned ? "border-clay bg-sand" : "border-line bg-paper"}`}>
+            <p className="text-xs font-extrabold tracking-wide text-muted uppercase">{item.earned ? "Conseguido" : "Pendiente"}</p>
+            <p className="mt-1 font-extrabold">{item.title}</p>
+            <p className="mt-1 text-xs leading-4 text-muted">{item.detail}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -227,6 +320,7 @@ export function BuscarView() {
   const [result, setResult] = useState<SearchResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     const query = new URLSearchParams();
@@ -248,23 +342,27 @@ export function BuscarView() {
       .finally(() => setLoading(false));
   }, [q, category, maxKm, maxPrice, minRating, available, emergency, sort]);
 
+  const place = user?.clientProfile?.locationSet ? user.clientProfile.neighborhood || user.clientProfile.city || "Tu zona" : "Tu zona";
   return (
-    <div className="px-4 pt-4 pb-28">
-      <h1 className="text-2xl font-extrabold">Buscar</h1>
-      <p className="mt-1 text-muted">Por oficio, nombre o problema. Precios en MXN.</p>
-      <form
-        className="mt-4 flex gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
+    <div className="pb-28">
+      <HomeHero
+        name={user ? firstName(user.name) : "Hola"}
+        place={place}
+        question="¿Qué necesitas hoy?"
+        placeholder="Fuga, Jorge, pintura…"
+        queryTestId="search-input"
+        submitTestId="search-submit"
+        value={q}
+        onValue={setQ}
+        onFilter={() => setFiltersOpen((open) => !open)}
+        onSubmit={() => {
           const next = new URLSearchParams();
           if (q) next.set("q", q);
           if (category) next.set("categoria", category);
           router.replace(`/buscar?${next.toString()}`);
         }}
-      >
-        <Input data-testid="search-input" value={q} onChange={(event) => setQ(event.target.value)} placeholder="Fuga, Jorge, pintura…" />
-        <Button data-testid="search-submit" type="submit">Buscar</Button>
-      </form>
+      />
+      <div className="px-4">
       <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
         <button type="button" onClick={() => setCategory("")} className={`shrink-0 rounded-full px-3 py-2 text-sm font-extrabold ${category === "" ? "bg-clay text-white" : "bg-white"}`}>Todos</button>
         {CATEGORIES.map((item) => (
@@ -273,7 +371,7 @@ export function BuscarView() {
           </button>
         ))}
       </div>
-      <details className="mt-3 rounded-3xl bg-sand p-3" open>
+      <details className="mt-3 rounded-3xl bg-sand p-3 shadow-sm" open={filtersOpen} onToggle={(event) => setFiltersOpen((event.target as HTMLDetailsElement).open)}>
         <summary className="cursor-pointer font-extrabold">Filtros</summary>
         <div className="mt-3 space-y-3">
           <Field label="Distancia máxima">
@@ -322,11 +420,13 @@ export function BuscarView() {
         {!loading && result && result.providers.length === 0 ? <EmptyState title="No hay personas con esos filtros" body="Amplía la distancia, quita el precio o prueba otra palabra." /> : null}
         {result?.providers.map((provider) => <ProviderCardView key={provider.id} provider={provider} />)}
       </div>
+      </div>
     </div>
   );
 }
 
 export function ProviderView({ id }: { id: string }) {
+  const { user } = useSession();
   const [provider, setProvider] = useState<ProviderProfile | null>(null);
   const [error, setError] = useState("");
   const [favorite, setFavorite] = useState(false);
@@ -343,7 +443,8 @@ export function ProviderView({ id }: { id: string }) {
 
   useEffect(() => {
     load();
-  }, [id]);
+    if (user) rememberProvider(user.id, id);
+  }, [id, user]);
 
   if (error) return <div className="px-4 py-6"><ErrorState message={error} onRetry={load} /></div>;
   if (!provider) return <LoadingBlock label="Cargando el perfil…" />;
@@ -529,7 +630,10 @@ export function SolicitarView() {
               ...address,
             }),
           })
-            .then((result) => router.push(`/solicitudes/${result.id}`))
+            .then((result) => {
+              celebrate("request");
+              router.push(`/solicitudes/${result.id}`);
+            })
             .catch((reason: unknown) => setError(reason instanceof ApiError ? reason.message : "No se pudo enviar la solicitud."))
             .finally(() => setBusy(false));
         }}

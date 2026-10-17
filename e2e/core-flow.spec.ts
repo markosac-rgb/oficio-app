@@ -28,16 +28,20 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await shot(page, "02-entrar");
 
   await login(page, "ana.lopez@oficio.demo");
-  await expect(page.getByRole("heading", { name: "Hola, Ana" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Ana" })).toBeVisible();
+  await expect(page.getByText("¿Qué necesitas hoy?")).toBeVisible();
+  await expect(page.getByText("Datos de ejemplo").first()).toBeVisible();
   await shot(page, "03-inicio");
+  await shot(page, "home-cliente");
   const nearbyMap = page.getByTestId("nearby-map");
   await nearbyMap.scrollIntoViewIfNeeded();
   await expect(nearbyMap).toContainText("OpenStreetMap");
   await shot(page, "03b-mapa-cerca");
 
   await page.getByTestId("nav-solicitudes").click();
-  await expect(page.getByRole("heading", { name: "Solicitudes" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Reservas" })).toBeVisible();
   await shot(page, "04-solicitudes");
+  await shot(page, "reservas");
 
   await page.getByTestId("nav-buscar").click();
   await page.getByTestId("search-input").fill("Jorge");
@@ -45,6 +49,7 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await expect(page.getByTestId("provider-prov_jorge")).toBeVisible();
   await page.getByTestId("buscar-map").scrollIntoViewIfNeeded();
   await expect(page.getByTestId("buscar-map")).toContainText("OpenStreetMap");
+  await shot(page, "explorar");
   await shot(page, "05b-mapa-buscar");
   await shot(page, "05-buscar");
   await page.getByTestId("provider-prov_jorge").click();
@@ -52,6 +57,7 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await expect(page.getByText("Ejemplo ficticio").first()).toBeVisible();
   await expect(page.getByText("Identidad sin verificar")).toBeVisible();
   await shot(page, "06-perfil-proveedor");
+  await shot(page, "perfil-proveedor");
 
   await page.getByTestId("request-service-svc_jorge_fuga").click();
   await expect(page.getByText("Reparación de fuga")).toBeVisible();
@@ -63,7 +69,9 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await shot(page, "07-solicitar");
   await page.getByTestId("request-submit").click();
   await expect(page.getByText(description)).toBeVisible();
+  await expect(page.getByTestId("request-success")).toBeVisible();
   await expect(page.getByText("Solicitado").first()).toBeVisible();
+  await shot(page, "solicitud-enviada");
   await expect(page.getByTestId("zone-map")).toBeVisible();
   await expect(page.getByTestId("exact-map")).toHaveCount(0);
   const requestUrl = page.url();
@@ -74,7 +82,9 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await login(page, "jorge.ramirez@oficio.demo");
   await page.goto("/panel");
   await expect(page.getByText(stamp)).toBeVisible();
+  await page.getByRole("heading", { name: "Tu panel" }).scrollIntoViewIfNeeded();
   await shot(page, "09-panel-proveedor");
+  await shot(page, "panel-proveedor");
   await page.getByTestId("provider-request").filter({ hasText: stamp }).first().click();
   await expect(page.getByTestId("address-hidden")).toBeVisible();
   await expect(page.getByTestId("zone-map")).toBeVisible();
@@ -118,6 +128,9 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await page.getByTestId("chat-send").click();
   await expect(page.getByText("Ya confirmé la visita de las 10.")).toBeVisible();
   await shot(page, "14-chat");
+  await page.goto("/mensajes");
+  await expect(page.getByRole("heading", { name: "Mensajes" })).toBeVisible();
+  await shot(page, "mensajes");
 
   await login(page, "jorge.ramirez@oficio.demo");
   await page.goto(requestUrl);
@@ -151,10 +164,12 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await shot(page, "18-ayuda");
   await page.goto("/perfil");
   await shot(page, "19-perfil");
+  await shot(page, "perfil");
 
   await login(page, "admin@oficio.demo");
   await page.goto("/admin");
   await expect(page.getByRole("heading", { name: "Administración" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Marcar identidad verificada" }).first()).toBeVisible();
   await shot(page, "20-admin");
+  await shot(page, "admin");
 });

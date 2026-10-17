@@ -47,6 +47,7 @@ export type ProviderCard = {
   reviewCount: number;
   exampleReviewCount: number;
   minPriceMxn: number | null;
+  hourlyMxn: number | null;
   priceLabel: string;
   availableNow: boolean;
   emergency: boolean;
@@ -148,6 +149,31 @@ export type RequestSummary = {
   myQuoteStatus: string | null;
   counterpart: string;
   hasPayment: boolean;
+  isExample: boolean;
+};
+
+export type MarketplaceStats = {
+  providers: number;
+  categories: number;
+  rating: number | null;
+  reviewCount: number;
+  exampleData: boolean;
+  realProviders: number;
+  exampleProviders: number;
+};
+
+export type CategoryCount = {
+  id: string;
+  name: string;
+  icon: string;
+  count: number;
+};
+
+export type Achievement = {
+  id: string;
+  title: string;
+  detail: string;
+  earned: boolean;
 };
 
 export type RequestDetail = {

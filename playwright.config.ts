@@ -15,6 +15,7 @@ export default defineConfig({
     locale: "es-MX",
     ...devices["Pixel 7"],
     viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 1,
   },
   webServer: {
     command: "npm run iniciar",

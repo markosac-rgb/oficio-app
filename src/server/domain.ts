@@ -23,10 +23,12 @@ import {
 import { displayName } from "@/lib/format";
 import { distanceKm, fuzzyCoord } from "@/lib/geo";
 import { prisma } from "@/lib/prisma";
+import { demoDataEnabled, setDemoDataEnabled } from "@/server/settings";
 import { statusHeadline } from "@/lib/status";
 import type {
   AdminUser,
   ChatMessage,
+  Achievement,
   ProviderCard,
   ProviderProfile,
   QuoteView,
@@ -78,14 +80,19 @@ function ratingOf(reviews: { rating: number; isExample: boolean }[]) {
   };
 }
 
-function priceOf(services: { priceType: string; priceMxn: number | null }[]) {
+function priceOf(services: { priceType: string; priceMxn: number | null; unit?: string }[]) {
+  const hourly = services.filter((service) => service.unit === "hora" && service.priceMxn != null);
+  const hourlyMxn = hourly.length === 0 ? null : Math.min(...hourly.map((service) => service.priceMxn as number));
   const priced = services.filter((service) => service.priceType !== "QUOTE" && service.priceMxn != null);
-  if (priced.length === 0) return { minPriceMxn: null as number | null, priceLabel: "Cotización" };
+  if (priced.length === 0) return { minPriceMxn: null as number | null, hourlyMxn, priceLabel: "Cotización" };
   const minPriceMxn = Math.min(...priced.map((service) => service.priceMxn as number));
-  if (services.length === 1 && services[0]?.priceType === "FIXED") {
-    return { minPriceMxn, priceLabel: `$${minPriceMxn.toLocaleString("es-MX")} MXN` };
+  if (hourlyMxn != null) {
+    return { minPriceMxn, hourlyMxn, priceLabel: `$${hourlyMxn.toLocaleString("es-MX")} MXN/h` };
   }
-  return { minPriceMxn, priceLabel: `Desde $${minPriceMxn.toLocaleString("es-MX")} MXN` };
+  if (services.length === 1 && services[0]?.priceType === "FIXED") {
+    return { minPriceMxn, hourlyMxn, priceLabel: `$${minPriceMxn.toLocaleString("es-MX")} MXN` };
+  }
+  return { minPriceMxn, hourlyMxn, priceLabel: `Desde $${minPriceMxn.toLocaleString("es-MX")} MXN` };
 }
 
 function parseSchedule(raw: string) {
@@ -167,10 +174,12 @@ export async function searchProviders(user: AppUser | null, filters: {
   sort?: "distance" | "price" | "rating";
   ids?: string[];
 }) {
+  const showExamples = await demoDataEnabled();
   const providers = await prisma.providerProfile.findMany({
     where: {
       profileReady: true,
       user: { suspended: false },
+      ...(showExamples ? {} : { isExample: false }),
       ...(filters.ids ? { id: { in: filters.ids } } : {}),
     },
     include: providerBundle,
@@ -235,7 +244,11 @@ export async function getProvider(user: AppUser | null, id: string): Promise<Pro
     include: providerBundle,
   });
   if (!provider || provider.user.suspended) throw new HttpError(404, "No encontramos a esa persona.");
+  const showExamples = await demoDataEnabled();
   const isOwner = user?.id === provider.userId;
+  if (provider.isExample && !showExamples && !isOwner && user?.role !== "ADMIN") {
+    throw new HttpError(404, "Los perfiles de ejemplo están ocultos.");
+  }
   if (!provider.profileReady && !isOwner && user?.role !== "ADMIN") {
     throw new HttpError(404, "Este perfil todavía no está listo.");
   }
@@ -522,6 +535,7 @@ function toSummary(request: RequestBundle, user: AppUser): RequestSummary {
     myQuoteStatus: mine?.status ?? null,
     counterpart,
     hasPayment: Boolean(request.payment),
+    isExample: request.isExample,
   };
 }
 
@@ -1032,8 +1046,11 @@ export async function listNotifications(user: AppUser) {
     orderBy: { createdAt: "desc" },
     take: 40,
   });
+  const unreadItems = items.filter((item) => !item.read);
   return {
-    unread: items.filter((item) => !item.read).length,
+    unread: unreadItems.length,
+    messages: unreadItems.filter((item) => item.href.startsWith("/mensajes")).length,
+    bookings: unreadItems.filter((item) => item.href.startsWith("/solicitudes")).length,
     items: items.map((item) => ({
       id: item.id,
       title: item.title,
@@ -1096,6 +1113,48 @@ async function refreshReady(providerId: string) {
   }
 }
 
+function mexicoWeekStart(now = new Date()) {
+  const offsetMs = -6 * 60 * 60 * 1000;
+  const local = new Date(now.getTime() + offsetMs);
+  const mondayOffset = (local.getUTCDay() + 6) % 7;
+  local.setUTCHours(0, 0, 0, 0);
+  local.setUTCDate(local.getUTCDate() - mondayOffset);
+  return new Date(local.getTime() - offsetMs);
+}
+
+function localDayKey(date: Date) {
+  const local = new Date(date.getTime() - 6 * 60 * 60 * 1000);
+  return local.toISOString().slice(0, 10);
+}
+
+function streakFrom(dates: Date[], now = new Date()) {
+  const days = new Set(dates.map((date) => localDayKey(date)));
+  if (days.size === 0) return 0;
+  let cursor = localDayKey(now);
+  if (!days.has(cursor)) cursor = localDayKey(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+  let streak = 0;
+  while (days.has(cursor)) {
+    streak += 1;
+    const [year, month, day] = cursor.split("-").map(Number);
+    cursor = new Date(Date.UTC(year, month - 1, day) - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  }
+  return streak;
+}
+
+async function clientAchievements(userId: string): Promise<Achievement[]> {
+  const [requests, completed, reviews] = await Promise.all([
+    prisma.serviceRequest.count({ where: { clientId: userId, isExample: false } }),
+    prisma.serviceRequest.count({ where: { clientId: userId, status: "COMPLETED", isExample: false } }),
+    prisma.review.count({ where: { authorId: userId, isExample: false } }),
+  ]);
+  return [
+    { id: "primer", title: "Primer servicio", detail: "Enviaste una solicitud tuya.", earned: requests >= 1 },
+    { id: "terminado", title: "Servicio terminado", detail: "Un trabajo tuyo llegó a completado.", earned: completed >= 1 },
+    { id: "resena", title: "Primera reseña", detail: "Publicaste una reseña.", earned: reviews >= 1 },
+    { id: "cinco", title: "5 reseñas", detail: "Publicaste cinco reseñas.", earned: reviews >= 5 },
+  ];
+}
+
 export async function providerDashboard(user: AppUser) {
   if (!user.providerProfile) throw new HttpError(403, "Esta sección es para quien ofrece servicios.");
   const profile = await getProvider(user, user.providerProfile.id);
@@ -1107,6 +1166,10 @@ export async function providerDashboard(user: AppUser) {
   const done = accepted.filter(
     (quote) => quote.request.status === "COMPLETED" && quote.request.selectedQuoteId === quote.id && quote.request.payment,
   );
+  const weekStart = mexicoWeekStart();
+  const doneThisWeek = done.filter((quote) => (quote.request.payment?.createdAt ?? quote.request.updatedAt) >= weekStart);
+  const realDone = done.filter((quote) => !quote.request.isExample);
+  const realReviews = profile.reviewCount - profile.exampleReviewCount;
   const documents = await prisma.providerDocument.findMany({
     where: { providerId: user.providerProfile.id },
     orderBy: { createdAt: "desc" },
@@ -1117,8 +1180,17 @@ export async function providerDashboard(user: AppUser) {
     active: requests.filter((item) => ["CONFIRMED", "EN_ROUTE", "IN_PROGRESS"].includes(item.status)),
     history: requests.filter((item) => ["COMPLETED", "CANCELLED"].includes(item.status)),
     earningsMxn: done.reduce((sum, quote) => sum + (quote.request.payment?.serviceMxn ?? 0), 0),
+    earningsWeekMxn: doneThisWeek.reduce((sum, quote) => sum + (quote.request.payment?.serviceMxn ?? 0), 0),
     feesShownMxn: done.reduce((sum, quote) => sum + (quote.request.payment?.feeMxn ?? 0), 0),
     completedJobs: done.length,
+    completedThisWeek: doneThisWeek.length,
+    streakDays: streakFrom(realDone.map((quote) => quote.request.payment?.createdAt ?? quote.request.updatedAt)),
+    goalTarget: 3,
+    achievements: [
+      { id: "primer", title: "Primer servicio", detail: "Terminaste un trabajo con pago registrado.", earned: realDone.length >= 1 },
+      { id: "cinco", title: "5 reseñas", detail: "Cinco reseñas que no son de ejemplo.", earned: realReviews >= 5 },
+      { id: "semana", title: "Semana activa", detail: "Registraste un trabajo esta semana.", earned: doneThisWeek.some((quote) => !quote.request.isExample) },
+    ] satisfies Achievement[],
     documents: documents.map((doc) => ({
       id: doc.id,
       kind: doc.kind,
@@ -1448,12 +1520,29 @@ export async function getHome(user: AppUser) {
       incoming: board.incoming.slice(0, 4),
       active: board.active.slice(0, 4),
       earningsMxn: board.earningsMxn,
+      earningsWeekMxn: board.earningsWeekMxn,
+      completedThisWeek: board.completedThisWeek,
+      streakDays: board.streakDays,
+      goalTarget: board.goalTarget,
+      achievements: board.achievements,
+      rating: board.profile.rating,
+      reviewCount: board.profile.reviewCount,
       availableNow: board.profile.availableNow,
       profileReady: board.profile.profileReady,
       trade: board.profile.trade,
+      demoData: await demoDataEnabled(),
     };
   }
-  const nearby = await searchProviders(user, { available: true, sort: "distance", maxKm: 15 });
+  const showExamples = await demoDataEnabled();
+  const [nearby, statsBundle, categoryCounts, favorites, rehireIds, activeRequests, achievements] = await Promise.all([
+    searchProviders(user, { available: true, sort: "distance", maxKm: 15 }),
+    marketplaceStats(showExamples),
+    categoryCountsFor(showExamples),
+    listFavorites(user),
+    rehireProviderIds(user.id),
+    listRequests(user).then((items) => items.filter((item) => !["COMPLETED", "CANCELLED"].includes(item.status)).slice(0, 3)),
+    clientAchievements(user.id),
+  ]);
   let featured = await searchProviders(user, {
     sort: "rating",
     maxKm: user.clientProfile?.locationSet ? 25 : undefined,
@@ -1465,16 +1554,88 @@ export async function getHome(user: AppUser) {
       maxKm: user.clientProfile?.locationSet ? 25 : undefined,
     });
   }
-  const activeRequests = (await listRequests(user)).filter((item) => !["COMPLETED", "CANCELLED"].includes(item.status)).slice(0, 3);
+  const rehire = rehireIds.length === 0 ? [] : (await searchProviders(user, { ids: rehireIds })).providers;
   return {
     role: "CLIENT" as const,
     needsLocation: !user.clientProfile?.locationSet,
-    categories: CATEGORIES,
-    nearby: nearby.providers.slice(0, 6),
-    featured: featured.providers.slice(0, 6),
+    categories: categoryCounts,
+    stats: statsBundle,
+    nearby: nearby.providers.slice(0, 8),
+    featured: featured.providers.slice(0, 8),
+    favorites: favorites.providers.slice(0, 8),
+    rehire,
     activeRequests,
+    achievements,
     locationKnown: nearby.locationKnown,
+    demoData: showExamples,
   };
+}
+
+async function marketplaceStats(showExamples: boolean) {
+  const providers = await prisma.providerProfile.findMany({
+    where: {
+      profileReady: true,
+      user: { suspended: false },
+      ...(showExamples ? {} : { isExample: false }),
+    },
+    include: { reviews: true, services: { select: { categoryId: true } } },
+  });
+  const reviews = providers.flatMap((provider) => provider.reviews).filter((review) => showExamples || !review.isExample);
+  const rating = reviews.length === 0 ? null : Math.round((reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length) * 10) / 10;
+  const categoryIds = new Set(providers.flatMap((provider) => provider.services.map((service) => service.categoryId)));
+  const exampleProviders = providers.filter((provider) => provider.isExample).length;
+  return {
+    providers: providers.length,
+    categories: categoryIds.size,
+    rating,
+    reviewCount: reviews.length,
+    exampleData: showExamples && exampleProviders > 0,
+    realProviders: providers.length - exampleProviders,
+    exampleProviders,
+  };
+}
+
+async function categoryCountsFor(showExamples: boolean) {
+  const providers = await prisma.providerProfile.findMany({
+    where: {
+      profileReady: true,
+      user: { suspended: false },
+      ...(showExamples ? {} : { isExample: false }),
+    },
+    include: { services: { select: { categoryId: true } } },
+  });
+  return CATEGORIES.map((category) => ({
+    id: category.id,
+    name: category.name,
+    icon: category.icon,
+    count: providers.filter((provider) => provider.services.some((service) => service.categoryId === category.id)).length,
+  }));
+}
+
+async function rehireProviderIds(clientId: string) {
+  const done = await prisma.serviceRequest.findMany({
+    where: { clientId, status: "COMPLETED" },
+    orderBy: { updatedAt: "desc" },
+    take: 12,
+    include: { quotes: { select: { id: true, providerId: true, status: true } } },
+  });
+  const ids: string[] = [];
+  for (const request of done) {
+    const selected = request.quotes.find((quote) => quote.id === request.selectedQuoteId) ?? request.quotes.find((quote) => quote.status === "ACCEPTED");
+    if (selected && !ids.includes(selected.providerId)) ids.push(selected.providerId);
+  }
+  return ids.slice(0, 8);
+}
+
+export async function adminDemoSettings(user: AppUser) {
+  if (user.role !== "ADMIN") throw new HttpError(403, "Solo administración puede cambiar los datos de ejemplo.");
+  return { demoData: await demoDataEnabled() };
+}
+
+export async function adminSetDemoData(user: AppUser, enabled: boolean) {
+  if (user.role !== "ADMIN") throw new HttpError(403, "Solo administración puede cambiar los datos de ejemplo.");
+  await setDemoDataEnabled(enabled);
+  return { demoData: enabled };
 }
 
 export async function lookupPostalCode(cp: string) {

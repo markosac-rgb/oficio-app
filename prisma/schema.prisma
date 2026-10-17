@@ -169,6 +169,7 @@ model ServiceRequest {
   emergency         Boolean   @default(false)
   preferredWindow   String    @default("")
   status            String
+  isExample         Boolean   @default(false)
   scheduledAt       DateTime?
   selectedQuoteId   String?
   cancelReason      String    @default("")
@@ -271,6 +272,11 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, read])
+}
+
+model AppSetting {
+  key   String @id
+  value String
 }
 
 model Report {
