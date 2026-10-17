@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+// Next a veces deja una fuente en "loading" y la captura se queda esperando.
+process.env.PW_TEST_SCREENSHOT_NO_FONTS_READY ||= "1";
+
 export default defineConfig({
   testDir: "e2e",
   timeout: 240_000,

@@ -33,3 +33,11 @@ body {
 dialog::backdrop {
   background: rgb(34 28 22 / 0.45);
 }
+
+.leaflet-container {
+  z-index: 0;
+  font-family: inherit;
+  height: 100%;
+  width: 100%;
+  background: #efe4d4;
+}

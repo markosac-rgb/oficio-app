@@ -1,9 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { fuzzyCoord } from "@/lib/geo";
 import { Button, Field, Input } from "@/components/ui";
 import { DemoBanner } from "@/components/states";
+import type { PlaceHit } from "@/adapters/geocoding";
+
+const PinMap = dynamic(() => import("@/components/maps").then((mod) => mod.PinMap), {
+  ssr: false,
+  loading: () => <div data-testid="location-map" className="h-56 rounded-3xl bg-sand" />,
+});
 
 export type AddressValue = {
   street: string;
@@ -16,11 +24,12 @@ export type AddressValue = {
   lng: number;
 };
 
-type Match = { cp: string; neighborhood: string; city: string; state: string; lat: number; lng: number };
-
-function box(lat: number, lng: number) {
-  return { latMin: lat - 0.045, latMax: lat + 0.045, lngMin: lng - 0.045, lngMax: lng + 0.045 };
-}
+type GeoResponse = {
+  simulated: boolean;
+  source: string;
+  note: string;
+  places: PlaceHit[];
+};
 
 export function LocationFields({
   value,
@@ -33,59 +42,88 @@ export function LocationFields({
   showStreet: boolean;
   legend: string;
 }) {
-  const [resetKey, setResetKey] = useState("inicio");
+  const [query, setQuery] = useState("");
+  const [places, setPlaces] = useState<PlaceHit[]>([]);
   const [hint, setHint] = useState("");
-  const [bounds, setBounds] = useState(() => box(value.lat, value.lng));
+  const [simulated, setSimulated] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    setBounds(box(value.lat, value.lng));
-    // Only recenter the illustrated map when the lookup key changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resetKey]);
+    const text = query.trim();
+    if (text.length < 3) return;
+    const timer = window.setTimeout(() => {
+      void search(text);
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [query]);
 
-  async function lookup() {
-    const result = await api<{ simulated: true; match: Match | null }>(`/api/geo/cp?cp=${encodeURIComponent(value.postalCode)}`);
-    if (!result.match) {
-      setHint("Ese código no está en el directorio de demostración. Escribe tu colonia y mueve el pin.");
-      return;
+  async function search(text: string) {
+    setBusy(true);
+    try {
+      const result = await api<GeoResponse>(`/api/geo/buscar?q=${encodeURIComponent(text)}`);
+      setPlaces(result.places);
+      setSimulated(result.simulated);
+      setHint(result.note);
+    } catch {
+      setHint("No se pudo buscar el lugar. Escribe colonia y código postal a mano.");
+      setPlaces([]);
+    } finally {
+      setBusy(false);
     }
-    onChange({
-      ...value,
-      postalCode: result.match.cp,
-      neighborhood: result.match.neighborhood,
-      city: result.match.city,
-      state: result.match.state,
-      lat: result.match.lat,
-      lng: result.match.lng,
-    });
-    setResetKey(`${result.match.cp}-${result.match.lat}`);
-    setHint(`${result.match.neighborhood}, ${result.match.city}. Ajusta el pin si hace falta.`);
   }
 
-  const x = ((value.lng - bounds.lngMin) / (bounds.lngMax - bounds.lngMin)) * 100;
-  const y = ((bounds.latMax - value.lat) / (bounds.latMax - bounds.latMin)) * 100;
-
-  function move(clientX: number, clientY: number, rect: DOMRect) {
-    const px = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-    const py = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height));
-    onChange({
-      ...value,
-      lng: bounds.lngMin + px * (bounds.lngMax - bounds.lngMin),
-      lat: bounds.latMax - py * (bounds.latMax - bounds.latMin),
-    });
+  async function lookupCp() {
+    setBusy(true);
+    try {
+      const result = await api<GeoResponse>(`/api/geo/cp?cp=${encodeURIComponent(value.postalCode)}`);
+      setSimulated(result.simulated);
+      setHint(result.note);
+      setPlaces(result.places);
+      if (result.places[0]) applyPlace(result.places[0]);
+    } catch {
+      setHint("No se pudo consultar el código postal. Puedes escribir la colonia a mano.");
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function nudge(dLat: number, dLng: number) {
+  function applyPlace(place: PlaceHit) {
     onChange({
       ...value,
-      lat: Math.min(bounds.latMax, Math.max(bounds.latMin, value.lat + dLat)),
-      lng: Math.min(bounds.lngMax, Math.max(bounds.lngMin, value.lng + dLng)),
+      street: showStreet && place.street ? place.street : value.street,
+      neighborhood: place.neighborhood || value.neighborhood,
+      city: place.city || value.city,
+      state: place.state || value.state,
+      postalCode: place.postalCode || value.postalCode,
+      lat: place.lat,
+      lng: place.lng,
     });
+    setPlaces([]);
   }
 
   return (
     <div className="space-y-3">
-      <DemoBanner>El mapa es ilustrado. No es Google Maps. Solo reconocemos algunos códigos postales de ejemplo, como 06700.</DemoBanner>
+      {simulated ? <DemoBanner>{hint}</DemoBanner> : null}
+      <Field label="Buscar dirección en México" hint="OpenStreetMap Nominatim. Esperamos un momento entre búsquedas.">
+        <Input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Calle, colonia o lugar"
+          data-testid="address-search"
+        />
+      </Field>
+      {busy ? <p className="text-sm font-bold">Buscando…</p> : null}
+      {places.length > 0 ? (
+        <ul className="space-y-2">
+          {places.map((place) => (
+            <li key={`${place.lat}-${place.lng}-${place.label}`}>
+              <button type="button" className="w-full rounded-2xl bg-white px-3 py-2 text-left text-sm leading-5" onClick={() => applyPlace(place)}>
+                {place.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <Field label="Código postal" hint={legend}>
         <div className="flex gap-2">
           <Input
@@ -94,12 +132,12 @@ export function LocationFields({
             onChange={(event) => onChange({ ...value, postalCode: event.target.value })}
             placeholder="06700"
           />
-          <Button type="button" variant="secondary" onClick={() => void lookup()}>
+          <Button type="button" variant="secondary" onClick={() => void lookupCp()}>
             Buscar
           </Button>
         </div>
       </Field>
-      {hint ? <p className="text-sm font-bold">{hint}</p> : null}
+      {!simulated && hint ? <p className="text-sm font-bold">{hint}</p> : null}
       <Field label="Colonia">
         <Input value={value.neighborhood} onChange={(event) => onChange({ ...value, neighborhood: event.target.value })} />
       </Field>
@@ -123,34 +161,10 @@ export function LocationFields({
       ) : null}
       <div>
         <p className="mb-1.5 text-sm font-extrabold">Ajustar el pin</p>
-        <div
-          className="relative h-52 overflow-hidden rounded-3xl border border-line bg-[#efe4d4]"
-          style={{
-            backgroundImage:
-              "linear-gradient(#e4d5c4 1px, transparent 1px), linear-gradient(90deg, #e4d5c4 1px, transparent 1px)",
-            backgroundSize: "28px 28px",
-          }}
-          onPointerDown={(event) => {
-            const rect = event.currentTarget.getBoundingClientRect();
-            move(event.clientX, event.clientY, rect);
-            event.currentTarget.setPointerCapture(event.pointerId);
-          }}
-          onPointerMove={(event) => {
-            if (event.buttons !== 1) return;
-            move(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect());
-          }}
-        >
-          <span
-            className="absolute h-5 w-5 -translate-x-1/2 -translate-y-full rounded-full border-2 border-white bg-clay shadow"
-            style={{ left: `${x}%`, top: `${y}%` }}
-          />
-        </div>
-        <div className="mt-2 grid grid-cols-4 gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={() => nudge(0.004, 0)}>Norte</Button>
-          <Button type="button" variant="secondary" size="sm" onClick={() => nudge(-0.004, 0)}>Sur</Button>
-          <Button type="button" variant="secondary" size="sm" onClick={() => nudge(0, -0.004)}>Oeste</Button>
-          <Button type="button" variant="secondary" size="sm" onClick={() => nudge(0, 0.004)}>Este</Button>
-        </div>
+        <PinMap lat={value.lat} lng={value.lng} onMove={(lat, lng) => onChange({ ...value, lat, lng })} />
+        <p className="mt-1 text-xs text-muted">
+          En el mapa público tu casa se verá cerca de {fuzzyCoord(value.lat).toFixed(2)}, {fuzzyCoord(value.lng).toFixed(2)}, no en este pin.
+        </p>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Arranque en Render (o en Docker). Migra y, solo si no hay usuarios, siembra.
+# Arranque en Render (o en Docker). Migra y siembra de nuevo sin duplicar.
 set -eu
 cd /app
 

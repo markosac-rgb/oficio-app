@@ -58,6 +58,8 @@ export type ProviderCard = {
   coverageKm: number;
   responseMinutes: number;
   experienceYears: number;
+  zoneLat: number;
+  zoneLng: number;
 };
 
 export type ProviderService = {

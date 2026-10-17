@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useSession } from "@/components/session";
 import { DemoBanner } from "@/components/states";
@@ -60,6 +60,7 @@ export function LoginScreen() {
   const router = useRouter();
   const { refresh } = useSession();
   const [mode, setMode] = useState<"password" | "code" | "google">("password");
+  const [googleReady, setGoogleReady] = useState(false);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
@@ -68,6 +69,13 @@ export function LoginScreen() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const next = safeNext(params.get("next"));
+  const googleError = params.get("error");
+
+  useEffect(() => {
+    api<{ configured: boolean }>("/api/auth/google/status")
+      .then((result) => setGoogleReady(result.configured))
+      .catch(() => setGoogleReady(false));
+  }, []);
 
   async function enter(path: string, body: unknown) {
     setBusy(true);
@@ -104,7 +112,7 @@ export function LoginScreen() {
           </button>
         ))}
       </div>
-      {error ? <p data-testid="form-error" className="mt-4 rounded-2xl bg-[#fff5f6] px-3 py-2 text-sm font-bold text-danger">{error}</p> : null}
+      {error || googleError ? <p data-testid="form-error" className="mt-4 rounded-2xl bg-[#fff5f6] px-3 py-2 text-sm font-bold text-danger">{error || googleError}</p> : null}
       {mode === "password" ? (
         <form
           className="mt-4 space-y-3"
@@ -160,15 +168,27 @@ export function LoginScreen() {
         </form>
       ) : null}
       {mode === "google" ? (
-        <div className="mt-4 space-y-3">
-          <DemoBanner>Este botón no abre Google. Entra a una cuenta demo fija.</DemoBanner>
-          <Button className="w-full" data-testid="google-client" disabled={busy} onClick={() => void enter("/api/auth/google", { role: "CLIENT" })}>
-            Continuar con Google como cliente
-          </Button>
-          <Button className="w-full" variant="secondary" data-testid="google-provider" disabled={busy} onClick={() => void enter("/api/auth/google", { role: "PROVIDER" })}>
-            Continuar con Google como proveedor
-          </Button>
-        </div>
+        googleReady ? (
+          <div className="mt-4 space-y-3">
+            <p className="text-sm leading-5 text-muted">Te llevamos a Google y regresas a Oficio. No guardamos tu contraseña de Google.</p>
+            <Button asChild className="w-full">
+              <a href="/api/auth/google/start?role=CLIENT">Continuar con Google como cliente</a>
+            </Button>
+            <Button asChild variant="secondary" className="w-full">
+              <a href="/api/auth/google/start?role=PROVIDER">Continuar con Google como proveedor</a>
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-4 space-y-3">
+            <DemoBanner>Este botón no abre Google. Entra a una cuenta demo fija.</DemoBanner>
+            <Button className="w-full" data-testid="google-client" disabled={busy} onClick={() => void enter("/api/auth/google", { role: "CLIENT" })}>
+              Continuar con Google como cliente (simulado)
+            </Button>
+            <Button className="w-full" variant="secondary" data-testid="google-provider" disabled={busy} onClick={() => void enter("/api/auth/google", { role: "PROVIDER" })}>
+              Continuar con Google como proveedor (simulado)
+            </Button>
+          </div>
+        )
       ) : null}
       <details className="mt-6 rounded-2xl bg-white p-3" data-testid="demo-accounts">
         <summary className="cursor-pointer font-extrabold">Cuentas demo</summary>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ADVANCE_LABEL, PAYMENT_METHODS, STATUS_LABEL, STATUS_ORDER, breakdown } from "@/lib/constants";
@@ -12,6 +13,13 @@ import type { ChatMessage, RequestDetail, RequestSummary, ThreadSummary } from "
 import { useSession } from "@/components/session";
 import { DemoBanner, EmptyState, ErrorState, ExampleTag, LoadingBlock } from "@/components/states";
 import { Badge, Button, Card, Dialog, Field, Input, TextArea } from "@/components/ui";
+
+const ZoneMap = dynamic(() => import("@/components/maps").then((mod) => mod.ZoneMap), {
+  ssr: false,
+  loading: () => <div data-testid="zone-map" className="mt-3 h-56 rounded-3xl bg-sand" />,
+});
+
+const CONFIRMED = ["CONFIRMED", "EN_ROUTE", "IN_PROGRESS", "COMPLETED"];
 
 function errorText(reason: unknown) {
   return reason instanceof ApiError || reason instanceof Error ? reason.message : "Intenta de nuevo.";
@@ -153,6 +161,14 @@ export function RequestDetailView({ id }: { id: string }) {
           <p className="mt-2 text-sm leading-5 text-muted">La calle y las referencias se comparten solo con quien haga el trabajo, cuando la cita quede confirmada.</p>
         </Card>
       )}
+      <div className="mt-3">
+        <ZoneMap
+          testId={CONFIRMED.includes(request.status) && request.exactAddress ? "exact-map" : "zone-map"}
+          lat={request.fuzzyLat}
+          lng={request.fuzzyLng}
+          exact={CONFIRMED.includes(request.status) && request.exactAddress ? { lat: request.exactAddress.lat, lng: request.exactAddress.lng } : null}
+        />
+      </div>
 
       <section className="mt-5">
         <h2 className="text-lg font-extrabold">{request.quotes.length > 1 ? "Compara cotizaciones" : "Cotización"}</h2>

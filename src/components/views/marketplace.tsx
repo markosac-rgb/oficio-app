@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -17,10 +18,15 @@ import {
 import { api, ApiError } from "@/lib/api";
 import { CATEGORIES, DAY_LABELS, DAY_KEYS } from "@/lib/constants";
 import { firstName, formatWhen, mxn, stars } from "@/lib/format";
-import { formatDistance } from "@/lib/geo";
+import { formatDistance, fuzzyCoord } from "@/lib/geo";
 import { fileToJpegDataUrl } from "@/lib/images";
 import type { ProviderProfile, RequestSummary } from "@/lib/types";
 import { ProviderCardView } from "@/components/provider-card";
+
+const NearbyMap = dynamic(() => import("@/components/maps").then((mod) => mod.NearbyMap), {
+  ssr: false,
+  loading: () => <div data-testid="nearby-map" className="mt-3 h-56 rounded-3xl bg-sand" />,
+});
 import { useSession } from "@/components/session";
 import { DemoTag, EmptyState, ErrorState, ExampleTag, LoadingBlock } from "@/components/states";
 import { TrustList } from "@/components/trust";
@@ -144,6 +150,18 @@ export function HomeView() {
         <li className="rounded-2xl bg-sand p-2">2. Compara precio</li>
         <li className="rounded-2xl bg-sand p-2">3. Confirma cita</li>
       </ol>
+      <h2 className="mt-6 text-lg font-extrabold">Cerca de ti</h2>
+      <div className="mt-3">
+        <NearbyMap
+          testId="nearby-map"
+          client={
+            user.clientProfile?.locationSet
+              ? { lat: fuzzyCoord(user.clientProfile.lat), lng: fuzzyCoord(user.clientProfile.lng) }
+              : null
+          }
+          providers={data.nearby}
+        />
+      </div>
       <h2 className="mt-6 text-lg font-extrabold">Oficios</h2>
       <div className="mt-3 grid grid-cols-3 gap-2">
         {CATEGORIES.map((category) => {
@@ -197,6 +215,7 @@ type SearchResponse = { providers: ProviderProfile[]; locationKnown: boolean };
 export function BuscarView() {
   const params = useSearchParams();
   const router = useRouter();
+  const { user } = useSession();
   const [q, setQ] = useState(params.get("q") ?? "");
   const [category, setCategory] = useState(params.get("categoria") ?? "");
   const [maxKm, setMaxKm] = useState(params.get("km") ?? "15");
@@ -285,6 +304,17 @@ export function BuscarView() {
           </Field>
         </div>
       </details>
+      <div className="mt-4">
+        <NearbyMap
+          testId="buscar-map"
+          client={
+            user?.clientProfile?.locationSet
+              ? { lat: fuzzyCoord(user.clientProfile.lat), lng: fuzzyCoord(user.clientProfile.lng) }
+              : null
+          }
+          providers={result?.providers ?? []}
+        />
+      </div>
       <div className="mt-4 space-y-3">
         {loading ? <LoadingBlock label="Buscando personas cerca…" /> : null}
         {error ? <ErrorState message={error} onRetry={() => setQ((value) => value)} /> : null}

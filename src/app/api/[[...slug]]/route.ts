@@ -29,6 +29,7 @@ import {
   decideQuote,
   deleteService,
   demoPostalCodes,
+  searchPlaces,
   getHome,
   getProvider,
   getRequest,
@@ -53,6 +54,7 @@ import {
   updateClientLocation,
   updateProviderProfile,
 } from "@/server/domain";
+import { beginGoogleOAuth, finishGoogleOAuth, googleOAuthConfigured } from "@/server/google-oauth";
 import { HttpError } from "@/server/errors";
 import { prisma } from "@/lib/prisma";
 
@@ -83,6 +85,8 @@ async function dispatch(method: string, request: NextRequest, slug: string[]) {
   if (method === "GET" && path === "help") return helpContent();
   if (method === "GET" && path === "geo/codigos") return demoPostalCodes();
   if (method === "GET" && path === "geo/cp") return lookupPostalCode(url.searchParams.get("cp") ?? "");
+  if (method === "GET" && path === "geo/buscar") return searchPlaces(url.searchParams.get("q") ?? "");
+  if (method === "GET" && path === "auth/google/status") return { configured: googleOAuthConfigured() };
 
   if (method === "POST" && path === "auth/register") return registerAccount(await readJson(request));
   if (method === "POST" && path === "auth/login") return loginWithPassword(await readJson(request));
@@ -203,7 +207,11 @@ async function handle(method: string, request: NextRequest, context: ApiContext)
   }
 }
 
-export function GET(request: NextRequest, context: ApiContext) {
+export async function GET(request: NextRequest, context: ApiContext) {
+  const { slug } = await context.params;
+  const path = (slug ?? []).join("/");
+  if (path === "auth/google/start") return beginGoogleOAuth(request);
+  if (path === "auth/google/callback") return finishGoogleOAuth(request);
   return handle("GET", request, context);
 }
 

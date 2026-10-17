@@ -30,6 +30,10 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await login(page, "ana.lopez@oficio.demo");
   await expect(page.getByRole("heading", { name: "Hola, Ana" })).toBeVisible();
   await shot(page, "03-inicio");
+  const nearbyMap = page.getByTestId("nearby-map");
+  await nearbyMap.scrollIntoViewIfNeeded();
+  await expect(nearbyMap).toContainText("OpenStreetMap");
+  await shot(page, "03b-mapa-cerca");
 
   await page.getByTestId("nav-solicitudes").click();
   await expect(page.getByRole("heading", { name: "Solicitudes" })).toBeVisible();
@@ -39,6 +43,9 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await page.getByTestId("search-input").fill("Jorge");
   await page.getByTestId("search-submit").click();
   await expect(page.getByTestId("provider-prov_jorge")).toBeVisible();
+  await page.getByTestId("buscar-map").scrollIntoViewIfNeeded();
+  await expect(page.getByTestId("buscar-map")).toContainText("OpenStreetMap");
+  await shot(page, "05b-mapa-buscar");
   await shot(page, "05-buscar");
   await page.getByTestId("provider-prov_jorge").click();
   await expect(page.getByRole("heading", { name: "Jorge Ramírez" })).toBeVisible();
@@ -50,11 +57,18 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await expect(page.getByText("Reparación de fuga")).toBeVisible();
   await expect(page.getByTestId("address-street")).toHaveValue(/Durazno/);
   await page.getByTestId("request-description").fill(description);
+  await page.getByTestId("location-map").scrollIntoViewIfNeeded();
+  await expect(page.getByTestId("location-map")).toContainText("OpenStreetMap");
+  await shot(page, "07b-mapa-direccion");
   await shot(page, "07-solicitar");
   await page.getByTestId("request-submit").click();
   await expect(page.getByText(description)).toBeVisible();
   await expect(page.getByText("Solicitado").first()).toBeVisible();
+  await expect(page.getByTestId("zone-map")).toBeVisible();
+  await expect(page.getByTestId("exact-map")).toHaveCount(0);
   const requestUrl = page.url();
+  await page.getByTestId("zone-map").scrollIntoViewIfNeeded();
+  await shot(page, "08b-mapa-zona");
   await shot(page, "08-solicitud");
 
   await login(page, "jorge.ramirez@oficio.demo");
@@ -63,6 +77,8 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await shot(page, "09-panel-proveedor");
   await page.getByTestId("provider-request").filter({ hasText: stamp }).first().click();
   await expect(page.getByTestId("address-hidden")).toBeVisible();
+  await expect(page.getByTestId("zone-map")).toBeVisible();
+  await expect(page.getByTestId("exact-map")).toHaveCount(0);
   await expect(page.getByText("Calle Durazno 123")).toHaveCount(0);
   await expect(page.getByText("depto 4")).toHaveCount(0);
   await page.getByTestId("quote-amount").fill("850");
@@ -107,6 +123,9 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await page.goto(requestUrl);
   await expect(page.getByTestId("exact-address")).toContainText("Calle Durazno 123");
   await expect(page.getByTestId("exact-address")).toContainText("depto 4");
+  await expect(page.getByTestId("exact-map")).toBeVisible();
+  await page.getByTestId("exact-map").scrollIntoViewIfNeeded();
+  await shot(page, "15b-mapa-exacto");
   await shot(page, "15-seguimiento-proveedor");
   await page.getByTestId("status-next").click();
   await expect(page.getByTestId("status-next")).toHaveText(/empecé/i);
@@ -124,7 +143,7 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await expect(page.getByTestId("review-thanks")).toBeVisible();
   await shot(page, "17-resena-hecha");
   await page.goto("/proveedores/prov_jorge");
-  await expect(page.getByText("Dejó el lavabo sin fuga y explicó el precio.")).toBeVisible();
+  await expect(page.getByText("Dejó el lavabo sin fuga y explicó el precio.").first()).toBeVisible();
   await expect(page.getByText("Cuenta demo").first()).toBeVisible();
 
   await page.goto("/ayuda");

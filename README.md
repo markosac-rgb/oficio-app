@@ -101,11 +101,37 @@ Escucha en `0.0.0.0` y en el puerto de `PORT` (43123 si no lo defines). La base 
 
 ### Render
 
-El archivo `render.yaml` define el servicio Docker, el disco de 1 GB en `/data` y `DATABASE_URL=file:/data/oficio.db`. El plan es `starter`: es el más barato que admite disco. El plan gratis no puede montar un disco y perdería la base en cada deploy.
+En el plan gratis el disco se borra en cada deploy. Por eso la base vive en `/tmp` y, al arrancar, el contenedor aplica las migraciones y vuelve a sembrar las cuentas demo y los ejemplos ficticios. La siembra usa upserts: no duplica filas y no borra cuentas que alguien haya creado en esa misma vida del contenedor. Si el contenedor se reinicia, `/tmp` queda vacío y las cuentas demo vuelven a existir.
 
-Al arrancar, el contenedor aplica las migraciones y siembra las cuentas demo solo si todavía no hay usuarios. Un redeploy no borra lo que ya se guardó. La revisión de salud es `GET /api/health`.
+Variables en Render:
 
-Render termina HTTPS y manda `X-Forwarded-Proto: https` y el host público. La cookie de sesión sale con `Secure` porque `NODE_ENV=production`.
+| Variable | Valor |
+| --- | --- |
+| `DATABASE_URL` | `file:/tmp/oficio.db` |
+| `NODE_ENV` | `production` |
+| `OFICIO_TRUST_ORIGIN` | `1` |
+| `OFICIO_PUBLIC_URL` | `https://oficio-app.onrender.com` (hace falta si activas Google) |
+| `GOOGLE_CLIENT_ID` | opcional |
+| `GOOGLE_CLIENT_SECRET` | opcional |
+
+La revisión de salud es `GET /api/health`. Render termina HTTPS y manda `X-Forwarded-Proto` y el host público. La cookie de sesión sale con `Secure`.
+
+El archivo `render.yaml` sigue describiendo un servicio Docker. Si más adelante pasas a un plan con disco, monta 1 GB en `/data` y cambia `DATABASE_URL` a `file:/data/oficio.db`.
+
+### Entrar con Google (gratis)
+
+Sin `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`, el botón dice **simulado** y no abre Google.
+
+Para activarlo en [Google Cloud Console](https://console.cloud.google.com/):
+
+1. Crea un proyecto (el nivel gratuito alcanza).
+2. Ve a **APIs y servicios → Pantalla de consentimiento de OAuth** y configúrala como externa, en modo de prueba. Agrega tu correo como usuario de prueba.
+3. Ve a **APIs y servicios → Credenciales → Crear credenciales → ID de cliente de OAuth**. Tipo: aplicación web.
+4. En **Orígenes autorizados de JavaScript** pon `https://oficio-app.onrender.com`.
+5. En **URI de redireccionamiento autorizados** pon exactamente `https://oficio-app.onrender.com/api/auth/google/callback`.
+6. Copia el ID y el secreto a las variables de Render y vuelve a desplegar.
+
+La URL de retorno que usa el servidor es `<OFICIO_PUBLIC_URL>/api/auth/google/callback`. Si no defines `OFICIO_PUBLIC_URL`, se arma con el host que manda el proxy.
 
 SQLite alcanza para una sola instancia. Si más adelante hay varios servidores, se puede cambiar el proveedor en `prisma/schema.prisma` (por ejemplo PostgreSQL) y generar una migración nueva. El resto del código usa Prisma.
 

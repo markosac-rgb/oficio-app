@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import type { Prisma } from "@prisma/client";
-import { demoGeocoder } from "@/adapters/geocoding";
+import { listDemoCodes, lookupPostalCode as geocodePostalCode, searchPlaces as geocodePlaces } from "@/adapters/geocoding";
 import { demoIdentityAdapter } from "@/adapters/identity";
 import { demoPaymentAdapter } from "@/adapters/payments";
 import {
@@ -151,6 +151,8 @@ function toCard(provider: ProviderBundle, origin: { lat: number; lng: number } |
     coverageKm: provider.coverageKm,
     responseMinutes: provider.responseMinutes,
     experienceYears: provider.experienceYears,
+    zoneLat: fuzzyCoord(provider.lat),
+    zoneLng: fuzzyCoord(provider.lng),
   };
 }
 
@@ -1476,14 +1478,18 @@ export async function getHome(user: AppUser) {
 }
 
 export async function lookupPostalCode(cp: string) {
-  return demoGeocoder.lookupPostalCode(cp);
+  return geocodePostalCode(cp);
+}
+
+export async function searchPlaces(query: string) {
+  return geocodePlaces(query);
 }
 
 export async function demoPostalCodes() {
   return {
     simulated: true as const,
-    externalProviderNeeded: "Google Maps Geocoding o Mapbox.",
-    places: demoGeocoder.listDemoCodes(),
+    note: "Lista corta de ejemplo por si Nominatim no responde.",
+    places: listDemoCodes(),
   };
 }
 

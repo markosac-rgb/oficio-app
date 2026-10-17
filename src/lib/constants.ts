@@ -172,8 +172,8 @@ export const INTEGRATIONS = [
   {
     id: "mapas",
     name: "Mapas y códigos postales",
-    needed: "Google Maps Geocoding o Mapbox, más el mapa para mover el pin",
-    now: "Directorio local de algunos códigos de ejemplo y un mapa ilustrado.",
+    needed: "Nada de pago. El mapa es OpenStreetMap y la búsqueda es Nominatim.",
+    now: "Mapa real de OpenStreetMap y geocodificación Nominatim limitada a México. Si falla, un directorio corto de ejemplo marcado como simulado.",
   },
   {
     id: "sms",
@@ -184,8 +184,8 @@ export const INTEGRATIONS = [
   {
     id: "google",
     name: "Google",
-    needed: "Cliente OAuth de Google Cloud y URL de retorno",
-    now: "Un botón entra a una cuenta demo fija. No abre Google.",
+    needed: "GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET de un cliente OAuth gratuito en Google Cloud.",
+    now: "Si esas variables están puestas, el botón abre Google de verdad. Si no, dice Simulado / Demo y entra a una cuenta de ejemplo.",
   },
   {
     id: "identidad",

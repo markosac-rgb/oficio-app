@@ -80,7 +80,7 @@ function sessionCookie(maxAge: number) {
   };
 }
 
-export async function createSession(userId: string) {
+async function saveSession(userId: string) {
   const token = randomBytes(32).toString("hex");
   await prisma.session.create({
     data: {
@@ -90,8 +90,18 @@ export async function createSession(userId: string) {
       expiresAt: new Date(Date.now() + MONTH * 1000),
     },
   });
+  return token;
+}
+
+export function sessionCookieHeader(token: string) {
+  return { name: COOKIE, value: token, options: sessionCookie(MONTH) };
+}
+
+export async function createSession(userId: string) {
+  const token = await saveSession(userId);
   const jar = await cookieJar();
   jar.set(COOKIE, token, sessionCookie(MONTH));
+  return token;
 }
 
 export async function clearSession() {
@@ -250,29 +260,33 @@ export async function verifyOtp(input: Record<string, unknown>) {
   return { user: toAccount(user), simulated: true as const };
 }
 
-export async function loginWithGoogle(input: Record<string, unknown>) {
-  const role = input.role === "PROVIDER" ? "PROVIDER" : "CLIENT";
-  const started = demoGoogleAdapter.start(role);
-  const email = started.profile.email.toLowerCase();
+export async function establishGoogleUser(profile: {
+  email: string;
+  name: string;
+  role: "CLIENT" | "PROVIDER";
+  simulated: boolean;
+}) {
+  const email = profile.email.trim().toLowerCase();
   let user = await prisma.user.findUnique({ where: { email }, include: userInclude });
   if (!user) {
-    const id = randomUUID();
     user = await prisma.user.create({
       data: {
-        id,
-        role: started.profile.role,
-        name: started.profile.name,
+        id: randomUUID(),
+        role: profile.role,
+        name: profile.name.slice(0, 80),
         email,
-        isDemo: true,
-        authNote: "Entrada con Google simulado. No se abrió una cuenta real de Google.",
+        isDemo: profile.simulated,
+        authNote: profile.simulated
+          ? "Entrada con Google simulado. No se abrió una cuenta real de Google."
+          : "Entró con Google.",
         acceptedRulesAt: new Date(),
-        clientProfile: started.profile.role === "CLIENT" ? { create: {} } : undefined,
+        clientProfile: profile.role === "CLIENT" ? { create: {} } : undefined,
         providerProfile:
-          started.profile.role === "PROVIDER"
+          profile.role === "PROVIDER"
             ? {
                 create: {
                   id: randomUUID(),
-                  isExample: true,
+                  isExample: profile.simulated,
                   scheduleJson: JSON.stringify(DEFAULT_SCHEDULE),
                   cancellationPolicy: "Trabajo con las reglas de cancelación de Oficio.",
                 },
@@ -282,9 +296,23 @@ export async function loginWithGoogle(input: Record<string, unknown>) {
       include: userInclude,
     });
   }
-  if (!user) throw new HttpError(500, "No se pudo entrar con el acceso simulado.");
+  if (!user) throw new HttpError(500, "No se pudo abrir la sesión.");
   if (user.suspended) throw new HttpError(403, "Esta cuenta está suspendida. Escribe desde Ayuda.");
-  await createSession(user.id);
+  const token = await saveSession(user.id);
+  return { user, token };
+}
+
+export async function loginWithGoogle(input: Record<string, unknown>) {
+  const role = input.role === "PROVIDER" ? "PROVIDER" : "CLIENT";
+  const started = demoGoogleAdapter.start(role);
+  const { user, token } = await establishGoogleUser({
+    email: started.profile.email,
+    name: started.profile.name,
+    role: started.profile.role,
+    simulated: true,
+  });
+  const jar = await cookieJar();
+  jar.set(COOKIE, token, sessionCookie(MONTH));
   return {
     user: toAccount(user),
     simulated: true as const,
