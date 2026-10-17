@@ -1,0 +1,23 @@
+# Blueprint de Render. El disco persistente no existe en el plan gratis;
+# starter es el plan de web service más barato que puede montar 1 GB.
+services:
+  - type: web
+    name: oficio
+    runtime: docker
+    plan: starter
+    branch: main
+    numInstances: 1
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        value: file:/data/oficio.db
+      - key: NODE_ENV
+        value: production
+      - key: OFICIO_TRUST_ORIGIN
+        value: "1"
+    disk:
+      name: oficio-data
+      mountPath: /data
+      sizeGB: 1

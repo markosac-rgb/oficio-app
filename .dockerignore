@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.bundle-stage
+.bundle-db
+prisma/*.db
+prisma/*.db-*
+test-results
+playwright-report
+e2e
+coverage
+*.md
+.env
+.env.*

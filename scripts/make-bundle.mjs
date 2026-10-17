@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync, statSync } from "node:fs";
+import { cpSync, mkdirSync, rmSync, existsSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -77,28 +77,7 @@ for (const extra of ["sharp-linuxmusl-x64", "sharp-libvips-linuxmusl-x64", "shar
   rmSync(join(stage, "node_modules", "@img", extra), { recursive: true, force: true });
 }
 
-const serverJs = join(stage, "server.js");
-let source = readFileSync(serverJs, "utf8");
-const marker = "process.env.__NEXT_PRIVATE_STANDALONE_CONFIG = JSON.stringify(nextConfig)";
-if (!source.includes(marker)) {
-  console.error("No encontré el config embebido en server.js");
-  process.exit(1);
-}
-const extra = `
-nextConfig.experimental = nextConfig.experimental || {}
-nextConfig.experimental.trustHostHeader = true
-const oficioExtraOrigins = (process.env.OFICIO_ALLOWED_ORIGINS || "")
-  .split(",")
-  .map((item) => item.trim())
-  .filter(Boolean)
-nextConfig.experimental.serverActions = nextConfig.experimental.serverActions || {}
-nextConfig.experimental.serverActions.allowedOrigins = [
-  ...(nextConfig.experimental.serverActions.allowedOrigins || []),
-  ...oficioExtraOrigins,
-]
-`;
-source = source.replace(marker, `${extra}${marker}`);
-writeFileSync(serverJs, source);
+run("node", ["scripts/patch-standalone.mjs", join(stage, "server.js")]);
 
 rmSync(dbDir, { recursive: true, force: true });
 mkdirSync(dbDir, { recursive: true });

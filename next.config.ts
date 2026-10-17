@@ -34,6 +34,8 @@ const nextConfig: NextConfig = {
         "**.lhr.life",
         "*.serveo.net",
         "**.serveo.net",
+        "*.onrender.com",
+        "**.onrender.com",
       ],
     },
   },

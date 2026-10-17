@@ -99,6 +99,14 @@ cd oficio
 
 Escucha en `0.0.0.0` y en el puerto de `PORT` (43123 si no lo defines). La base del paquete es `data/oficio.db`. Detrás de un túnel HTTPS el proxy debe reenviar el host público en `Host` o en `X-Forwarded-Host`, y `X-Forwarded-Proto: https`. Si el proxy deja `Host` en una dirección interna, `trust-proxy.cjs` usa el host público para que Next no bloquee el origen.
 
+### Render
+
+El archivo `render.yaml` define el servicio Docker, el disco de 1 GB en `/data` y `DATABASE_URL=file:/data/oficio.db`. El plan es `starter`: es el más barato que admite disco. El plan gratis no puede montar un disco y perdería la base en cada deploy.
+
+Al arrancar, el contenedor aplica las migraciones y siembra las cuentas demo solo si todavía no hay usuarios. Un redeploy no borra lo que ya se guardó. La revisión de salud es `GET /api/health`.
+
+Render termina HTTPS y manda `X-Forwarded-Proto: https` y el host público. La cookie de sesión sale con `Secure` porque `NODE_ENV=production`.
+
 SQLite alcanza para una sola instancia. Si más adelante hay varios servidores, se puede cambiar el proveedor en `prisma/schema.prisma` (por ejemplo PostgreSQL) y generar una migración nueva. El resto del código usa Prisma.
 
 ## App nativa más adelante
