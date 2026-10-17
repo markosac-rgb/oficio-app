@@ -4,9 +4,9 @@ Borrador — debe revisarlo un abogado antes de publicarse
 
 Versión del texto en la aplicación: 2026-10-17
 
-Fecha de última actualización: [FECHA DE ÚLTIMA ACTUALIZACIÓN]
+Fecha de última actualización: 17 de octubre de 2026
 
-Estos términos los publica **[RAZÓN SOCIAL O NOMBRE DEL RESPONSABLE]**, con domicilio en **[DOMICILIO]** y RFC **[RFC]** (en adelante, Oficio o la plataforma). Oficio es un mercado electrónico que pone en contacto, en México, a quien necesita un servicio para su casa con quien ofrece ese oficio por su cuenta.
+Estos términos los publica **Marcos Iván Amezquita Canizales (persona física)**, con domicilio en **Circuito Berrugata 3303, Palmilla** y RFC **AECM880617U33** (en adelante, Oficio o la plataforma). Oficio es un mercado electrónico que pone en contacto, en México, a quien necesita un servicio para su casa con quien ofrece ese oficio por su cuenta.
 
 Al crear una cuenta y marcar la casilla de aceptación, confirmas que leíste estos términos y el aviso de privacidad, que tienes 18 años cumplidos y que aceptas ambos documentos. La aplicación guarda la fecha y la hora de esa aceptación y la versión del texto (2026-10-17). Esa acción es un mensaje de datos conforme al Código de Comercio.
 
@@ -67,7 +67,7 @@ En lo que la ley permita, la responsabilidad de Oficio por el uso de la platafor
 
 ## 10. Propiedad intelectual
 
-El nombre Oficio, la interfaz, los textos de la plataforma y el software pertenecen a **[RAZÓN SOCIAL O NOMBRE DEL RESPONSABLE]** o a sus licenciantes. El uso de la aplicación no concede permiso para copiarlos.
+El nombre Oficio, la interfaz, los textos de la plataforma y el software pertenecen a **Marcos Iván Amezquita Canizales (persona física)** o a sus licenciantes. El uso de la aplicación no concede permiso para copiarlos.
 
 El contenido que publicas (reseñas, descripciones, mensajes) sigue siendo tuyo. Concedes a la plataforma una licencia no exclusiva, gratuita y limitada a operarlo dentro de Oficio, mostrarlo a la otra parte del servicio y conservarlo el tiempo necesario para la cuenta, la aclaración y las obligaciones legales.
 
@@ -81,11 +81,11 @@ Para las controversias con la plataforma que no estén reservadas a la PROFECO o
 
 ## 12. Cambios a estos términos
 
-Si el texto cambia, la nueva versión se publica en esta página, el identificador de versión de la aplicación se actualiza y, cuando exista el correo de contacto, se puede avisar por ese medio. Crear una cuenta nueva exige aceptar la versión vigente. La fecha oficial de actualización es **[FECHA DE ÚLTIMA ACTUALIZACIÓN]**.
+Si el texto cambia, la nueva versión se publica en esta página, el identificador de versión de la aplicación se actualiza y, cuando exista el correo de contacto, se puede avisar por ese medio. Crear una cuenta nueva exige aceptar la versión vigente. La fecha oficial de actualización es **17 de octubre de 2026**.
 
 ## 13. Contacto
 
-- Responsable: [RAZÓN SOCIAL O NOMBRE DEL RESPONSABLE]
-- Domicilio: [DOMICILIO]
-- RFC: [RFC]
-- Privacidad y derechos sobre datos: [CORREO DE CONTACTO DE PRIVACIDAD]
+- Responsable: Marcos Iván Amezquita Canizales (persona física)
+- Domicilio: Circuito Berrugata 3303, Palmilla
+- RFC: AECM880617U33
+- Privacidad y derechos sobre datos: xionplanta@gmail.com

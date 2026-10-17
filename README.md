@@ -142,15 +142,15 @@ SQLite alcanza para una sola instancia. Si más adelante hay varios servidores, 
 
 Hay un borrador de términos y un aviso de privacidad (integral y simplificado) en `docs/legal/`, en Markdown y en Word. Las páginas públicas son `/terminos` y `/privacidad`. Arriba de cada una dice que un abogado debe revisarlo antes de publicarse.
 
-Quien opere la plataforma tiene que sustituir estos datos, que el borrador deja en blanco a propósito:
+Los datos del responsable están en `src/lib/legal-party.ts`. Las páginas y el aviso simplificado del registro los leen de ahí:
 
-- `[RAZÓN SOCIAL O NOMBRE DEL RESPONSABLE]`
-- `[DOMICILIO]`
-- `[RFC]`
-- `[CORREO DE CONTACTO DE PRIVACIDAD]`
-- `[FECHA DE ÚLTIMA ACTUALIZACIÓN]`
+- Responsable: Marcos Iván Amezquita Canizales (persona física)
+- Domicilio: Circuito Berrugata 3303, Palmilla
+- RFC: AECM880617U33
+- Correo de privacidad: xionplanta@gmail.com
+- Última actualización: 17 de octubre de 2026
 
-La versión que guarda la aplicación al crear una cuenta es `2026-10-17`. No es la fecha oficial del responsable.
+La versión que guarda la aplicación al crear una cuenta es `2026-10-17`.
 
 ## App nativa más adelante
 

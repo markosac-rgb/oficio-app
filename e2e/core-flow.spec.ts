@@ -28,15 +28,16 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
 
   await page.getByTestId("link-terminos").click();
   await expect(page.getByTestId("legal-banner")).toHaveText("Borrador — debe revisarlo un abogado antes de publicarse");
-  await expect(page.getByText("[RAZÓN SOCIAL O NOMBRE DEL RESPONSABLE]").first()).toBeVisible();
+  await expect(page.getByText("Marcos Iván Amezquita Canizales (persona física)").first()).toBeVisible();
   await page.goto("/privacidad");
   await expect(page.getByRole("heading", { name: "Aviso de privacidad simplificado" })).toBeVisible();
   await expect(page.getByTestId("legal-banner")).toBeVisible();
-  await expect(page.getByText("[CORREO DE CONTACTO DE PRIVACIDAD]").first()).toBeVisible();
+  await expect(page.getByText("xionplanta@gmail.com").first()).toBeVisible();
 
   const stampId = Date.now();
   await page.goto("/registro?rol=cliente");
-  await expect(page.getByTestId("aviso-simplificado")).toBeVisible();
+  await expect(page.getByTestId("aviso-simplificado")).toContainText("Marcos Iván Amezquita Canizales (persona física)");
+  await expect(page.getByTestId("aviso-simplificado")).toContainText("xionplanta@gmail.com");
   await page.getByTestId("reg-name").fill("Cliente Legal");
   await page.getByTestId("reg-email").fill(`legal.${stampId}@oficio.demo`);
   await page.getByTestId("reg-phone").fill(`55${String(stampId).slice(-8)}`);

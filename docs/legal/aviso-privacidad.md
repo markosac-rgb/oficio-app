@@ -4,19 +4,19 @@ Borrador — debe revisarlo un abogado antes de publicarse
 
 Versión del texto en la aplicación: 2026-10-17
 
-Fecha de última actualización: [FECHA DE ÚLTIMA ACTUALIZACIÓN]
+Fecha de última actualización: 17 de octubre de 2026
 
 Este aviso se elaboró conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares publicada en el Diario Oficial de la Federación el 20 de marzo de 2025, en vigor desde el 21 de marzo de 2025. El Reglamento de la ley anterior y los Lineamientos del Aviso de Privacidad se toman en cuenta solo en lo que sigan vigentes y no se opongan a esa ley. La ley de 2010 quedó abrogada. Este texto es un borrador: debe revisarlo un abogado antes de publicarse.
 
 ## Aviso de privacidad simplificado
 
-Responsable: [RAZÓN SOCIAL O NOMBRE DEL RESPONSABLE], con domicilio en [DOMICILIO].
+Responsable: Marcos Iván Amezquita Canizales (persona física), con domicilio en Circuito Berrugata 3303, Palmilla.
 
 Datos que se tratan: nombre, correo, teléfono, dirección y ubicación aproximada, perfil y oficio, reseñas, mensajes del chat, datos de identificación si se usa la verificación, y el registro del medio de pago que las partes acuerdan. Hoy la aplicación no procesa pagos con tarjeta. Si se recaba la imagen o el número de una identificación oficial, ese dato se identifica como sensible en el aviso integral.
 
 Finalidades primarias, necesarias para darte el servicio: crear y administrar tu cuenta, contactarte, mostrar la zona aproximada, operar la solicitud y el chat, y registrar el medio de pago acordado. Estas finalidades no piden una autorización aparte.
 
-Finalidades secundarias, que sí requieren tu consentimiento y puedes rechazar: enviarte avisos de novedades de la plataforma y usar datos que te identifican para mejorar el producto. Si no marcas la casilla al registrarte, no las aplicamos. También puedes pedir que se limiten escribiendo a [CORREO DE CONTACTO DE PRIVACIDAD].
+Finalidades secundarias, que sí requieren tu consentimiento y puedes rechazar: enviarte avisos de novedades de la plataforma y usar datos que te identifican para mejorar el producto. Si no marcas la casilla al registrarte, no las aplicamos. También puedes pedir que se limiten escribiendo a xionplanta@gmail.com.
 
 Para limitar el uso o la divulgación de tus datos usa esa casilla, escribe al correo anterior o, si no quieres publicidad, inscríbete en el Registro Público de Usuarios (REUS) de la PROFECO.
 
@@ -26,9 +26,9 @@ El aviso de privacidad integral está en la página Aviso de privacidad de esta 
 
 ### 1. Identidad y domicilio del responsable
 
-El responsable del tratamiento es **[RAZÓN SOCIAL O NOMBRE DEL RESPONSABLE]**, con domicilio en **[DOMICILIO]** y RFC **[RFC]**.
+El responsable del tratamiento es **Marcos Iván Amezquita Canizales (persona física)**, con domicilio en **Circuito Berrugata 3303, Palmilla** y RFC **AECM880617U33**.
 
-Las solicitudes de acceso, rectificación, cancelación, oposición, revocación del consentimiento y limitación de uso se atienden en **[CORREO DE CONTACTO DE PRIVACIDAD]**. La persona o el área de privacidad del responsable es quien da trámite a esas solicitudes, en ese mismo correo.
+Las solicitudes de acceso, rectificación, cancelación, oposición, revocación del consentimiento y limitación de uso se atienden en **xionplanta@gmail.com**. La persona o el área de privacidad del responsable es quien da trámite a esas solicitudes, en ese mismo correo.
 
 ### 2. Datos personales que se tratan
 
@@ -72,7 +72,7 @@ Estas finalidades requieren tu consentimiento. En la ley vigente son las que deb
 - Enviarte avisos sobre novedades de la plataforma que no sean el seguimiento de un servicio concreto.
 - Usar datos que te identifican para entender cómo mejorar el producto.
 
-Al registrarte hay una casilla aparte, desmarcada. Si no la marcas, estas finalidades no se aplican y puedes usar Oficio igual. Si la marcas y después cambias de opinión, escribe a **[CORREO DE CONTACTO DE PRIVACIDAD]** con el asunto «Limitación de finalidades secundarias». Dejaremos de usarlas para eso en cuanto atendamos la solicitud. Negarlas no cancela tu cuenta.
+Al registrarte hay una casilla aparte, desmarcada. Si no la marcas, estas finalidades no se aplican y puedes usar Oficio igual. Si la marcas y después cambias de opinión, escribe a **xionplanta@gmail.com** con el asunto «Limitación de finalidades secundarias». Dejaremos de usarlas para eso en cuanto atendamos la solicitud. Negarlas no cancela tu cuenta.
 
 ### 6. Transferencias y encargados
 
@@ -86,13 +86,13 @@ Se informan estas comunicaciones, aunque algunas sean necesarias para ejecutar e
 
 El tercero que recibe datos por una transferencia asume las mismas obligaciones de protección que la ley impone al responsable, para las finalidades informadas.
 
-Puedes oponerte a transferencias que no sean necesarias para el servicio escribiendo a **[CORREO DE CONTACTO DE PRIVACIDAD]**. El hospedaje y la entrega de la dirección al proveedor confirmado son necesarios para operar la solicitud: oponerse a ellos implica dejar de usar esa función o la cuenta.
+Puedes oponerte a transferencias que no sean necesarias para el servicio escribiendo a **xionplanta@gmail.com**. El hospedaje y la entrega de la dirección al proveedor confirmado son necesarios para operar la solicitud: oponerse a ellos implica dejar de usar esa función o la cuenta.
 
 ### 7. Derechos ARCO y revocación del consentimiento
 
 Puedes solicitar acceso, rectificación, cancelación u oposición (derechos ARCO) y revocar tu consentimiento.
 
-Escribe a **[CORREO DE CONTACTO DE PRIVACIDAD]**. En la solicitud incluye:
+Escribe a **xionplanta@gmail.com**. En la solicitud incluye:
 
 - Tu nombre y un correo o domicilio para recibir la respuesta.
 - Una copia de tu identificación, o de la de quien te represente, y el documento que acredite la representación.
@@ -107,7 +107,7 @@ Si la respuesta no te satisface, puedes acudir ante la Secretaría Anticorrupci�
 
 ### 8. Limitar el uso o la divulgación
 
-Además de la casilla de finalidades secundarias y del correo **[CORREO DE CONTACTO DE PRIVACIDAD]**, puedes inscribirte en el Registro Público de Usuarios (REUS) de la PROFECO si no quieres publicidad de proveedores de bienes o servicios.
+Además de la casilla de finalidades secundarias y del correo **xionplanta@gmail.com**, puedes inscribirte en el Registro Público de Usuarios (REUS) de la PROFECO si no quieres publicidad de proveedores de bienes o servicios.
 
 ### 9. Cookies y almacenamiento en el dispositivo
 
@@ -120,7 +120,7 @@ En el almacenamiento local del navegador se guardan, en ese dispositivo, la pref
 
 ### 10. Cambios a este aviso
 
-Los cambios se publican en esta página y en la aplicación, con una nueva versión del texto. Cuando el responsable tenga operando el correo de contacto, también podrá avisarte por ese medio. La fecha oficial de la última actualización es **[FECHA DE ÚLTIMA ACTUALIZACIÓN]**. La versión que hoy muestra la aplicación es 2026-10-17.
+Los cambios se publican en esta página y en la aplicación, con una nueva versión del texto. Cuando el responsable tenga operando el correo de contacto, también podrá avisarte por ese medio. La fecha oficial de la última actualización es **17 de octubre de 2026**. La versión que hoy muestra la aplicación es 2026-10-17.
 
 ### 11. Consentimiento
 
