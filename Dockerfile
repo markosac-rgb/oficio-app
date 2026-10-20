@@ -32,6 +32,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/docs/legal ./docs/legal
 COPY --from=builder /app/src/lib/constants.ts ./src/lib/constants.ts
+COPY --from=builder /app/src/lib/commission.ts ./src/lib/commission.ts
 COPY --from=builder /app/scripts/trust-proxy.cjs ./scripts/trust-proxy.cjs
 COPY --from=builder /app/scripts/render-start.sh ./scripts/render-start.sh
 COPY --from=builder /app/scripts/seed-if-empty.mjs ./scripts/seed-if-empty.mjs
