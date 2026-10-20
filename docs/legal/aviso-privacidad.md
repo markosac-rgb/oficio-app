@@ -2,9 +2,9 @@ Borrador — debe revisarlo un abogado antes de publicarse
 
 # Aviso de privacidad
 
-Versión del texto en la aplicación: 2026-10-17
+Versión del texto en la aplicación: 2026-10-20
 
-Fecha de última actualización: 17 de octubre de 2026
+Fecha de última actualización: 20 de octubre de 2026
 
 Este aviso se elaboró conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares publicada en el Diario Oficial de la Federación el 20 de marzo de 2025, en vigor desde el 21 de marzo de 2025. El Reglamento de la ley anterior y los Lineamientos del Aviso de Privacidad se toman en cuenta solo en lo que sigan vigentes y no se opongan a esa ley. La ley de 2010 quedó abrogada. Este texto es un borrador: debe revisarlo un abogado antes de publicarse.
 
@@ -48,7 +48,7 @@ No pedimos origen étnico, estado de salud, creencias, afiliación sindical, opi
 
 En el uso ordinario no se tratan datos sensibles.
 
-La imagen de una identificación oficial y los datos que permitan reconocer rasgos biométricos sí se consideran datos que merecen el cuidado de datos sensibles. Solo se recabarían si se usa una verificación que los pida, y únicamente con tu consentimiento expreso en ese momento. Mientras esa función no pida el archivo ni el número, Oficio no los tiene.
+La imagen de una identificación oficial y los datos que permitan reconocer rasgos biométricos sí se consideran datos que merecen el cuidado de datos sensibles. Solo se recabarían si se usa una verificación que los pida, y únicamente con tu consentimiento expreso en ese momento. Mientras esa función no pida el archivo ni el número, Ofixio no los tiene.
 
 El registro del medio de pago y del monto es un dato patrimonial. Se recaba con el consentimiento expreso de la casilla de aceptación, para la finalidad primaria de dejar constancia de lo que las partes acordaron. No es un cobro con tarjeta.
 
@@ -72,7 +72,7 @@ Estas finalidades requieren tu consentimiento. En la ley vigente son las que deb
 - Enviarte avisos sobre novedades de la plataforma que no sean el seguimiento de un servicio concreto.
 - Usar datos que te identifican para entender cómo mejorar el producto.
 
-Al registrarte hay una casilla aparte, desmarcada. Si no la marcas, estas finalidades no se aplican y puedes usar Oficio igual. Si la marcas y después cambias de opinión, escribe a **xionplanta@gmail.com** con el asunto «Limitación de finalidades secundarias». Dejaremos de usarlas para eso en cuanto atendamos la solicitud. Negarlas no cancela tu cuenta.
+Al registrarte hay una casilla aparte, desmarcada. Si no la marcas, estas finalidades no se aplican y puedes usar Ofixio igual. Si la marcas y después cambias de opinión, escribe a **xionplanta@gmail.com** con el asunto «Limitación de finalidades secundarias». Dejaremos de usarlas para eso en cuanto atendamos la solicitud. Negarlas no cancela tu cuenta.
 
 ### 6. Transferencias y encargados
 
@@ -82,7 +82,7 @@ Se informan estas comunicaciones, aunque algunas sean necesarias para ejecutar e
 
 - Al proveedor del trabajo confirmado se le comunican el nombre, el teléfono y el domicilio exacto del lugar del servicio, para que pueda realizar el acuerdo. El proveedor debe usarlos solo para ese trabajo. Es una transferencia necesaria para la relación entre tú y la plataforma y para el contrato en tu interés.
 - Render, encargado del hospedaje, ubicado en Estados Unidos de América, aloja la aplicación y la base de datos por cuenta del responsable. Los datos se tratan ahí para que el servicio funcione. Es un flujo transfronterizo hacia ese encargado, no una venta.
-- OpenStreetMap, mediante el servicio Nominatim, recibe el texto de dirección o de lugar que escribes al buscar una ubicación en México, para devolver coordenadas. Oficio no controla ese servicio. La consulta lleva un identificador de la aplicación y se limita a resultados en México.
+- OpenStreetMap, mediante el servicio Nominatim, recibe el texto de dirección o de lugar que escribes al buscar una ubicación en México, para devolver coordenadas. Ofixio no controla ese servicio. La consulta lleva un identificador de la aplicación y se limita a resultados en México.
 
 El tercero que recibe datos por una transferencia asume las mismas obligaciones de protección que la ley impone al responsable, para las finalidades informadas.
 
@@ -120,7 +120,7 @@ En el almacenamiento local del navegador se guardan, en ese dispositivo, la pref
 
 ### 10. Cambios a este aviso
 
-Los cambios se publican en esta página y en la aplicación, con una nueva versión del texto. Cuando el responsable tenga operando el correo de contacto, también podrá avisarte por ese medio. La fecha oficial de la última actualización es **17 de octubre de 2026**. La versión que hoy muestra la aplicación es 2026-10-17.
+Los cambios se publican en esta página y en la aplicación, con una nueva versión del texto. Cuando el responsable tenga operando el correo de contacto, también podrá avisarte por ese medio. La fecha oficial de la última actualización es **20 de octubre de 2026**. La versión que hoy muestra la aplicación es 2026-10-20.
 
 ### 11. Consentimiento
 

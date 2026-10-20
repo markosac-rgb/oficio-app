@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
 import { Bell, CalendarDays, CircleHelp, House, MessageCircle, Search, UserRound } from "lucide-react";
 import { LegalFooter } from "@/components/legal-footer";
+import { Wordmark } from "@/components/wordmark";
 import { api } from "@/lib/api";
 import type { Account } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -79,8 +80,8 @@ export function Shell({ user, children }: { user: Account; children: React.React
           {hero ? null : (
             <header className="sticky top-0 z-30 bg-gradient-to-r from-[#083d34] to-[#0e6b56] px-4 py-3 text-white">
               <div className="flex items-center gap-2">
-                <Link href="/inicio" className="text-lg font-extrabold">
-                  Oficio
+                <Link href="/inicio" className="text-lg text-white">
+                  <Wordmark tone="onDark" />
                 </Link>
                 {user.isDemo ? <span className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-bold">Cuenta demo</span> : null}
                 <div className="ml-auto flex items-center">

@@ -341,7 +341,7 @@ export function RequestDetailView({ id }: { id: string }) {
         </div>
       </Dialog>
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen} title="Cancelar servicio">
-        <p className="text-sm leading-5">{request.permissions.needsDisputeOnCancel ? "El trabajo ya empezó o el proveedor va en camino. Cancelar abre una aclaración. Oficio no devuelve dinero porque no lo tiene." : "Antes de que el proveedor salga, cancelar no tiene costo en esta demo."}</p>
+        <p className="text-sm leading-5">{request.permissions.needsDisputeOnCancel ? "El trabajo ya empezó o el proveedor va en camino. Cancelar abre una aclaración. Ofixio no devuelve dinero porque no lo tiene." : "Antes de que el proveedor salga, cancelar no tiene costo en esta demo."}</p>
         <Field label="Motivo">
           <TextArea data-testid="cancel-reason" value={reason} onChange={(event) => setReason(event.target.value)} />
         </Field>
@@ -460,7 +460,7 @@ export function PaymentView({ id }: { id: string }) {
           </fieldset>
           <label className="flex items-start gap-2 text-sm leading-5">
             <input data-testid="pay-policy" type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} className="mt-1 h-5 w-5" />
-            <span>Leí las reglas de cancelación y aclaraciones. Entiendo que Oficio no retiene el dinero.</span>
+            <span>Leí las reglas de cancelación y aclaraciones. Entiendo que Ofixio no retiene el dinero.</span>
           </label>
           {error ? <ErrorState message={error} /> : null}
           {done ? <p className="font-bold">Elección registrada. Folio {done}.</p> : null}

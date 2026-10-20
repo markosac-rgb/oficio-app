@@ -1,6 +1,6 @@
-# Oficio
+# Ofixio
 
-App web para México que conecta a clientes con personas que hacen oficios en casa: plomería, electricidad, carpintería, pintura, técnicos, jardinería y limpieza. Se usa desde el celular y también en computadora. Se puede instalar como aplicación (PWA).
+App web para México que conecta a clientes con personas que hacen oficios en casa: plomería, electricidad, carpintería, pintura, técnicos, jardinería y limpieza. Se usa desde el celular y también en computadora. Se puede instalar como aplicación (PWA). La frase de la marca es «Lo arreglamos por ti».
 
 La interfaz está en español de México. Los precios se muestran en pesos (MXN).
 
@@ -12,7 +12,7 @@ Un solo comando, desde la carpeta del proyecto:
 npm run iniciar
 ```
 
-Eso instala dependencias si faltan, prepara la base SQLite, carga los datos de ejemplo y abre la app en [http://127.0.0.1:43123](http://127.0.0.1:43123).
+Eso instala dependencias si faltan, aplica las migraciones de PostgreSQL, carga los datos de ejemplo y abre la app en [http://127.0.0.1:43123](http://127.0.0.1:43123). En esta máquina hace falta Postgres en `127.0.0.1:5432`, base `oficio`, usuario `oficio`, contraseña `oficio`. Si el servicio está apagado, el script intenta encenderlo.
 
 También sirve `./iniciar.sh`.
 
@@ -30,7 +30,7 @@ Los proveedores y las reseñas que ya vienen cargados son **ejemplos ficticios**
 
 ## Qué sí funciona
 
-Los datos se guardan en SQLite (archivo `prisma/dev.db`). La sesión es una cookie httpOnly.
+Los datos se guardan en PostgreSQL. La sesión es una cookie httpOnly.
 
 - Crear cuenta de cliente o de proveedor, con correo y/o teléfono y contraseña.
 - Entrar con esa contraseña.
@@ -61,7 +61,7 @@ Cada pieza externa está detrás de un adaptador en `src/adapters/`. En pantalla
 | Identidad | El documento queda pendiente hasta que administración lo marque. Nadie queda “verificado” solo. | Un proveedor que revise INE u otra identificación |
 | Avisos push | Solo avisos dentro de la app. | FCM o APNs cuando exista la app nativa |
 
-Oficio **no** retiene el dinero del cliente ni ofrece un depósito en garantía. La comisión se muestra antes de confirmar, pero no se cobra. Efectivo se acuerda entre las dos personas, sin protección de la plataforma.
+Ofixio **no** retiene el dinero del cliente ni ofrece un depósito en garantía. La comisión se muestra antes de confirmar, pero no se cobra. Efectivo se acuerda entre las dos personas, sin protección de la plataforma.
 
 ## Prueba del flujo
 
@@ -75,7 +75,7 @@ Playwright recorre: cliente pide, proveedor cotiza, el cliente acepta, agenda, r
 
 ## Cómo desplegarla
 
-Hace falta Node 20 o más nuevo y un disco donde viva el archivo SQLite.
+Hace falta Node 20 o más nuevo y un PostgreSQL. El arranque aplica `prisma migrate deploy` y después la siembra idempotente. Esa siembra hace upserts: no borra cuentas ni trabajos.
 
 ```bash
 npm install
@@ -85,29 +85,32 @@ npm run build
 npm start
 ```
 
-`npm start` escucha en el puerto 43123. En producción define `DATABASE_URL` (por ejemplo `file:/datos/oficio.db`) y sirve la app por HTTPS. La cookie de sesión se marca segura cuando `NODE_ENV=production`.
+`npm start` escucha en el puerto 43123. En producción define `DATABASE_URL` con la cadena de PostgreSQL y sirve la app por HTTPS. La cookie de sesión se marca segura cuando `NODE_ENV=production`.
+
+Si la base usa un pooler (Neon), `DATABASE_URL` es la URL con `-pooler` y `sslmode=require`. `DIRECT_URL` es la URL directa, sin pooler, y solo la usa `prisma migrate`. Si omites `DIRECT_URL`, las migraciones usan `DATABASE_URL`. En runtime, si el host es un pooler de Neon y la URL no trae `pgbouncer=true`, la app lo agrega para no romper las consultas preparadas.
 
 ### Paquete para un servidor sin el repositorio
 
-`node scripts/make-bundle.mjs` genera `oficio-bundle.tar.gz`: build standalone, archivos estáticos, el motor de Prisma para Linux x86_64 (`debian-openssl-3.0.x`), la base ya migrada y con las cuentas demo, y `start.sh`. En la otra máquina solo hace falta Node:
+`node scripts/make-bundle.mjs` genera `oficio-bundle.tar.gz`: build standalone, archivos estáticos, el motor de Prisma para Linux x86_64 (`debian-openssl-3.0.x`) y `start.sh`. La base no va dentro del paquete. En la otra máquina hace falta Node y un `DATABASE_URL` de PostgreSQL:
 
 ```bash
 tar -xzf oficio-bundle.tar.gz
 cd oficio
-./start.sh
+DATABASE_URL="postgresql://..." ./start.sh
 ```
 
-Escucha en `0.0.0.0` y en el puerto de `PORT` (43123 si no lo defines). La base del paquete es `data/oficio.db`. Detrás de un túnel HTTPS el proxy debe reenviar el host público en `Host` o en `X-Forwarded-Host`, y `X-Forwarded-Proto: https`. Si el proxy deja `Host` en una dirección interna, `trust-proxy.cjs` usa el host público para que Next no bloquee el origen.
+Escucha en `0.0.0.0` y en el puerto de `PORT` (43123 si no lo defines). Detrás de un túnel HTTPS el proxy debe reenviar el host público en `Host` o en `X-Forwarded-Host`, y `X-Forwarded-Proto: https`. Si el proxy deja `Host` en una dirección interna, `trust-proxy.cjs` usa el host público para que Next no bloquee el origen.
 
 ### Render
 
-En el plan gratis el disco se borra en cada deploy. Por eso la base vive en `/tmp` y, al arrancar, el contenedor aplica las migraciones y vuelve a sembrar las cuentas demo y los ejemplos ficticios. La siembra usa upserts: no duplica filas y no borra cuentas que alguien haya creado en esa misma vida del contenedor. Si el contenedor se reinicia, `/tmp` queda vacío y las cuentas demo vuelven a existir.
+El servicio es Docker, plan gratis, sin disco. Los datos persisten en Neon. Al arrancar, el contenedor aplica las migraciones y vuelve a sembrar las cuentas demo y los ejemplos ficticios. La siembra no duplica filas y no borra lo que ya está en Neon.
 
 Variables en Render:
 
 | Variable | Valor |
 | --- | --- |
-| `DATABASE_URL` | `file:/tmp/oficio.db` |
+| `DATABASE_URL` | Cadena pooled de Neon, con `sslmode=require`. Conviene agregar `pgbouncer=true`. |
+| `DIRECT_URL` | Opcional. Cadena directa de Neon, sin `-pooler`, para `prisma migrate`. Si falta, se usa `DATABASE_URL`. |
 | `NODE_ENV` | `production` |
 | `OFICIO_TRUST_ORIGIN` | `1` |
 | `OFICIO_DEMO_DATA` | `1` por defecto. Con `0`, el arranque oculta los perfiles de ejemplo hasta que un admin los vuelva a mostrar |
@@ -119,7 +122,7 @@ Un administrador puede ocultar los perfiles de ejemplo en Administración. Mient
 
 La revisión de salud es `GET /api/health`. Render termina HTTPS y manda `X-Forwarded-Proto` y el host público. La cookie de sesión sale con `Secure`.
 
-El archivo `render.yaml` sigue describiendo un servicio Docker. Si más adelante pasas a un plan con disco, monta 1 GB en `/data` y cambia `DATABASE_URL` a `file:/data/oficio.db`.
+`render.yaml` describe ese servicio. `DATABASE_URL` y `DIRECT_URL` se llenan en el panel de Render; no van en el repositorio.
 
 ### Entrar con Google (gratis)
 
@@ -136,8 +139,6 @@ Para activarlo en [Google Cloud Console](https://console.cloud.google.com/):
 
 La URL de retorno que usa el servidor es `<OFICIO_PUBLIC_URL>/api/auth/google/callback`. Si no defines `OFICIO_PUBLIC_URL`, se arma con el host que manda el proxy.
 
-SQLite alcanza para una sola instancia. Si más adelante hay varios servidores, se puede cambiar el proveedor en `prisma/schema.prisma` (por ejemplo PostgreSQL) y generar una migración nueva. El resto del código usa Prisma.
-
 ## Documentos legales
 
 Hay un borrador de términos y un aviso de privacidad (integral y simplificado) en `docs/legal/`, en Markdown y en Word. Las páginas públicas son `/terminos` y `/privacidad`. Arriba de cada una dice que un abogado debe revisarlo antes de publicarse.
@@ -148,9 +149,9 @@ Los datos del responsable están en `src/lib/legal-party.ts`. Las páginas y el 
 - Domicilio: Circuito Berrugata 3303, Palmilla
 - RFC: AECM880617U33
 - Correo de privacidad: xionplanta@gmail.com
-- Última actualización: 17 de octubre de 2026
+- Última actualización: 20 de octubre de 2026
 
-La versión que guarda la aplicación al crear una cuenta es `2026-10-17`.
+La versión que guarda la aplicación al crear una cuenta es `2026-10-20`.
 
 ## App nativa más adelante
 

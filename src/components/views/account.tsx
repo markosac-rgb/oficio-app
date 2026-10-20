@@ -265,7 +265,7 @@ function ProfileEditor({ board, onSaved }: { board: Dashboard; onSaved: () => vo
     <Card>
       <h2 className="font-extrabold">Tu oficio</h2>
       <div className="mt-3 space-y-2">
-        <Input value={form.trade} onChange={(event) => setForm({ ...form, trade: event.target.value })} placeholder="Oficio" />
+        <Input value={form.trade} onChange={(event) => setForm({ ...form, trade: event.target.value })} placeholder="Plomero, pintor…" />
         <TextArea value={form.bio} onChange={(event) => setForm({ ...form, bio: event.target.value })} />
         <Input value={form.zoneLabel} onChange={(event) => setForm({ ...form, zoneLabel: event.target.value })} placeholder="Zona" />
         <div className="grid grid-cols-2 gap-2">

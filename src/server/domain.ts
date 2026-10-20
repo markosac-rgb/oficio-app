@@ -842,7 +842,7 @@ export async function recordPayment(user: AppUser, requestId: string, input: Rec
   await notify(
     selected.provider.userId,
     "Servicio confirmado",
-    `Ya puedes ver la dirección. Método elegido: ${methodInfo.name}. No hubo un cobro dentro de Oficio.`,
+    `Ya puedes ver la dirección. Método elegido: ${methodInfo.name}. No hubo un cobro dentro de Ofixio.`,
     `/solicitudes/${requestId}`,
   );
   await notify(request.clientId, "Quedó confirmado", "Guardamos tu método y el desglose. Revisa el recibo en la solicitud.", `/solicitudes/${requestId}/pago`);

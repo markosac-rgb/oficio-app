@@ -22,6 +22,8 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Alguien de confianza/ })).toBeVisible();
+  await expect(page.getByText("Lo arreglamos por ti")).toBeVisible();
+  await expect(page.getByTestId("wordmark").first()).toContainText("Ofixio");
   await expect(page.getByTestId("link-terminos")).toBeVisible();
   await expect(page.getByTestId("link-privacidad")).toBeVisible();
   await shot(page, "01-bienvenida");
@@ -48,7 +50,7 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await page.getByTestId("reg-submit").click();
   await page.waitForURL("**/inicio");
   await page.getByTestId("nav-perfil").click();
-  await expect(page.getByTestId("legal-acceptance")).toContainText("2026-10-17");
+  await expect(page.getByTestId("legal-acceptance")).toContainText("2026-10-20");
   await expect(page.getByTestId("legal-acceptance")).toContainText("no aceptadas");
   await page.getByTestId("logout").click();
   await page.waitForURL("**/entrar");

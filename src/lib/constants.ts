@@ -1,7 +1,7 @@
 export const PLATFORM_FEE_RATE = 0.1;
 export const POLICY_VERSION = "2026-10";
-export const LEGAL_VERSION = "2026-10-17";
-export const APP_NAME = "Oficio";
+export const LEGAL_VERSION = "2026-10-20";
+export const APP_NAME = "Ofixio";
 
 export const CATEGORIES = [
   { id: "plomeria", name: "Plomería", blurb: "Fugas, llaves, drenaje y tinacos", icon: "droplets", sort: 1 },
@@ -96,7 +96,7 @@ export const PAYMENT_METHODS: {
     name: "Tarjeta",
     summary: "Débito o crédito",
     protection:
-      "En esta demo no se hace ningún cargo a una tarjeta. En producción aquí se conectaría Conekta, Stripe México, Mercado Pago u OpenPay. Oficio no retiene el dinero y no hay depósito en garantía. Sí queda un recibo de lo que elegiste y puedes abrir una aclaración.",
+      "En esta demo no se hace ningún cargo a una tarjeta. En producción aquí se conectaría Conekta, Stripe México, Mercado Pago u OpenPay. Ofixio no retiene el dinero y no hay depósito en garantía. Sí queda un recibo de lo que elegiste y puedes abrir una aclaración.",
     external: "Conekta, Stripe México, Mercado Pago u OpenPay",
   },
   {
@@ -112,7 +112,7 @@ export const PAYMENT_METHODS: {
     name: "SPEI",
     summary: "Transferencia",
     protection:
-      "Simulado / Demo: no hay CLABE ni referencia bancaria real. No transfieras dinero a nadie por este concepto dentro de la app. En producción, la pasarela generaría la referencia SPEI. Oficio no custodia ese dinero.",
+      "Simulado / Demo: no hay CLABE ni referencia bancaria real. No transfieras dinero a nadie por este concepto dentro de la app. En producción, la pasarela generaría la referencia SPEI. Ofixio no custodia ese dinero.",
     external: "Conekta, OpenPay, Stripe México o Mercado Pago (SPEI)",
   },
   {
@@ -120,7 +120,7 @@ export const PAYMENT_METHODS: {
     name: "Mercado Pago",
     summary: "Saldo o tarjeta en Mercado Pago",
     protection:
-      "Simulado / Demo: no abrimos el checkout de Mercado Pago ni se mueve saldo. Falta conectar su API. No hay cobro ni dinero retenido por Oficio.",
+      "Simulado / Demo: no abrimos el checkout de Mercado Pago ni se mueve saldo. Falta conectar su API. No hay cobro ni dinero retenido por Ofixio.",
     external: "Mercado Pago Checkout",
   },
   {
@@ -128,8 +128,8 @@ export const PAYMENT_METHODS: {
     name: "Efectivo",
     summary: "Se lo pagas al proveedor",
     protection:
-      "Pagas directo al proveedor, en efectivo, como acuerden. Oficio no toca ese dinero, no lo retiene y no puede devolverlo. La comisión de la plataforma no se cobra en esta demo. Si algo sale mal, abre una aclaración: una persona la revisa con los dos. No hay reembolso automático.",
-    external: "Ninguno: el efectivo no pasa por Oficio",
+      "Pagas directo al proveedor, en efectivo, como acuerden. Ofixio no toca ese dinero, no lo retiene y no puede devolverlo. La comisión de la plataforma no se cobra en esta demo. Si algo sale mal, abre una aclaración: una persona la revisa con los dos. No hay reembolso automático.",
+    external: "Ninguno: el efectivo no pasa por Ofixio",
   },
 ];
 
@@ -137,7 +137,7 @@ export const CANCELLATION_RULES = [
   "Antes de confirmar la cita y el método de pago, puedes cancelar sin costo.",
   "Después de confirmar, también puedes cancelar. En esta demo no existe un cargo real que haya que devolver.",
   "Si el proveedor ya va en camino o el trabajo empezó, la cancelación abre una aclaración para que administración la revise.",
-  "En efectivo, el dinero se lo das al proveedor. Oficio no lo guarda y no lo regresa.",
+  "En efectivo, el dinero se lo das al proveedor. Ofixio no lo guarda y no lo regresa.",
   "No hay depósito en garantía ni custodia de fondos. Una aclaración es una revisión entre las dos personas, no un reembolso automático.",
 ];
 
@@ -192,7 +192,7 @@ export const INTEGRATIONS = [
     id: "identidad",
     name: "Verificación de identidad",
     needed: "Un proveedor que revise INE u otra identificación",
-    now: "La persona administradora marca la revisión dentro de Oficio. Nada se aprueba solo.",
+    now: "La persona administradora marca la revisión dentro de Ofixio. Nada se aprueba solo.",
   },
   {
     id: "avisos",

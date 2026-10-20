@@ -21,7 +21,7 @@ export interface OAuthAdapter {
 
 export const demoGoogleAdapter: OAuthAdapter = {
   start(role) {
-    const needed = "Google OAuth: cliente en Google Cloud y URL de retorno de Oficio.";
+    const needed = "Google OAuth: cliente en Google Cloud y URL de retorno de Ofixio.";
     if (role === "PROVIDER") {
       return {
         simulated: true,

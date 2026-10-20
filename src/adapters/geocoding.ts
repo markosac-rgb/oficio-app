@@ -36,7 +36,7 @@ export interface PostalMatch {
   lng: number;
 }
 
-const USER_AGENT = "Oficio/1.0 (servicios para el hogar en México; https://oficio-app.onrender.com)";
+const USER_AGENT = "Ofixio/1.0 (servicios para el hogar en México; https://oficio-app.onrender.com)";
 const CACHE_MS = 24 * 60 * 60 * 1000;
 const MIN_GAP_MS = 1100;
 

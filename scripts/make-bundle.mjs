@@ -6,8 +6,6 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const standalone = join(root, ".next", "standalone");
 const stage = join(root, ".bundle-stage", "oficio");
-const dbDir = join(root, ".bundle-db");
-const dbFile = join(dbDir, "oficio.db");
 
 function run(command, args, env = {}) {
   const result = spawnSync(command, args, {
@@ -79,20 +77,6 @@ for (const extra of ["sharp-linuxmusl-x64", "sharp-libvips-linuxmusl-x64", "shar
 
 run("node", ["scripts/patch-standalone.mjs", join(stage, "server.js")]);
 
-rmSync(dbDir, { recursive: true, force: true });
-mkdirSync(dbDir, { recursive: true });
-const databaseUrl = `file:${dbFile}`;
-run("npx", ["prisma", "migrate", "deploy"], { DATABASE_URL: databaseUrl });
-run("npx", ["tsx", "prisma/seed.ts"], { DATABASE_URL: databaseUrl });
-run("node", ["--input-type=module", "-e", `
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
-await prisma.$queryRawUnsafe("PRAGMA wal_checkpoint(TRUNCATE);");
-await prisma.$disconnect();
-`], { DATABASE_URL: databaseUrl });
-
-mkdirSync(join(stage, "data"), { recursive: true });
-cpSync(dbFile, join(stage, "data", "oficio.db"));
 cpSync(join(root, "scripts", "trust-proxy.cjs"), join(stage, "trust-proxy.cjs"));
 cpSync(join(root, "scripts", "start-standalone.sh"), join(stage, "start.sh"));
 spawnSync("chmod", ["755", join(stage, "start.sh")], { stdio: "inherit" });

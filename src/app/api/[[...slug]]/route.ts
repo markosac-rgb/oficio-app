@@ -1,5 +1,4 @@
 import type { NextRequest } from "next/server";
-import { ensureSqlite } from "@/lib/prisma";
 import {
   changePassword,
   clearSession,
@@ -202,7 +201,6 @@ type ApiContext = { params: Promise<{ slug?: string[] }> };
 
 async function handle(method: string, request: NextRequest, context: ApiContext) {
   try {
-    await ensureSqlite();
     const { slug } = await context.params;
     const result = await dispatch(method, request, slug ?? []);
     return Response.json(result ?? { ok: true });

@@ -569,7 +569,7 @@ async function main() {
         isExample: true,
         profileReady: true,
         scheduleJson: JSON.stringify(DEFAULT_SCHEDULE),
-        cancellationPolicy: "Trabajo con las reglas de cancelación de Oficio. Si ya salí hacia el domicilio, la cancelación se revisa como aclaración.",
+        cancellationPolicy: "Trabajo con las reglas de cancelación de Ofixio. Si ya salí hacia el domicilio, la cancelación se revisa como aclaración.",
       },
       create: {
         id: provider.id,
@@ -594,7 +594,7 @@ async function main() {
         isExample: true,
         profileReady: true,
         scheduleJson: JSON.stringify(DEFAULT_SCHEDULE),
-        cancellationPolicy: "Trabajo con las reglas de cancelación de Oficio. Si ya salí hacia el domicilio, la cancelación se revisa como aclaración.",
+        cancellationPolicy: "Trabajo con las reglas de cancelación de Ofixio. Si ya salí hacia el domicilio, la cancelación se revisa como aclaración.",
       },
     });
     for (const service of provider.services) {

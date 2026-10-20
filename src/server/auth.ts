@@ -196,7 +196,7 @@ export async function registerAccount(input: Record<string, unknown>) {
               create: {
                 id: randomUUID(),
                 scheduleJson: JSON.stringify(DEFAULT_SCHEDULE),
-                cancellationPolicy: "Trabajo con las reglas de cancelación de Oficio.",
+                cancellationPolicy: "Trabajo con las reglas de cancelación de Ofixio.",
               },
             }
           : undefined,
@@ -296,7 +296,7 @@ export async function establishGoogleUser(profile: {
                   id: randomUUID(),
                   isExample: profile.simulated,
                   scheduleJson: JSON.stringify(DEFAULT_SCHEDULE),
-                  cancellationPolicy: "Trabajo con las reglas de cancelación de Oficio.",
+                  cancellationPolicy: "Trabajo con las reglas de cancelación de Ofixio.",
                 },
               }
             : undefined,

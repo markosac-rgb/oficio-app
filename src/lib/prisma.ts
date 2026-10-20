@@ -2,25 +2,20 @@ import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
+/** Neon en modo transacción no admite prepared statements con nombre. */
+export function pooledDatabaseUrl(raw = process.env.DATABASE_URL || "") {
+  if (!raw || !/-pooler\./.test(raw) || /(?:^|[?&])pgbouncer=true(?:&|$)/.test(raw)) return raw;
+  return raw.includes("?") ? `${raw}&pgbouncer=true` : `${raw}?pgbouncer=true`;
+}
+
+const runtimeUrl = pooledDatabaseUrl();
+
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient({
-    log: ["error"],
-  });
+  (runtimeUrl && runtimeUrl !== process.env.DATABASE_URL
+    ? new PrismaClient({ log: ["error"], datasources: { db: { url: runtimeUrl } } })
+    : new PrismaClient({ log: ["error"] }));
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
-}
-
-let pragmaReady: Promise<void> | null = null;
-
-export function ensureSqlite() {
-  if (!pragmaReady) {
-    pragmaReady = prisma
-      .$queryRawUnsafe("PRAGMA journal_mode=WAL;")
-      .then(() => prisma.$queryRawUnsafe("PRAGMA busy_timeout=5000;"))
-      .then(() => undefined)
-      .catch(() => undefined);
-  }
-  return pragmaReady;
 }

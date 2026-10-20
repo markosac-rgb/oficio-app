@@ -1,6 +1,6 @@
 /**
  * Identity adapter. Submitting a document never verifies anyone.
- * An admin must mark the review inside Oficio.
+ * An admin must mark the review inside Ofixio.
  * A production KYC vendor (INE check) would replace this submit step,
  * and a person should still be able to reject the result.
  */

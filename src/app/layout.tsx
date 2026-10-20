@@ -11,11 +11,11 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Oficio", template: "%s · Oficio" },
-  description: "Pide plomeros, electricistas y otros oficios cerca de tu casa, en México.",
-  applicationName: "Oficio",
+  title: { default: "Ofixio", template: "%s · Ofixio" },
+  description: "Lo arreglamos por ti. Pide plomeros, electricistas y otros oficios cerca de tu casa, en México.",
+  applicationName: "Ofixio",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "Oficio", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Ofixio", statusBarStyle: "default" },
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },

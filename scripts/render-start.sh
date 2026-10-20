@@ -1,5 +1,5 @@
 #!/bin/sh
-# Arranque en Render (o en Docker). Migra y siembra de nuevo sin duplicar.
+# Arranque en Render (o en Docker). Migra y siembra sin borrar datos.
 set -eu
 cd /app
 
@@ -8,11 +8,14 @@ export NODE_ENV=production
 # escuchando ahí y no en la red del proxy. Forzamos todas las interfaces.
 export HOSTNAME=0.0.0.0
 export PORT="${PORT:-10000}"
-export DATABASE_URL="${DATABASE_URL:-file:/data/oficio.db}"
 export OFICIO_TRUST_ORIGIN="${OFICIO_TRUST_ORIGIN:-1}"
 
-db_path="${DATABASE_URL#file:}"
-mkdir -p "$(dirname "$db_path")"
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "Falta DATABASE_URL. Tiene que ser una cadena de PostgreSQL." >&2
+  exit 1
+fi
+# Las migraciones usan la conexión directa. En runtime la app usa DATABASE_URL.
+export DIRECT_URL="${DIRECT_URL:-$DATABASE_URL}"
 
 node /opt/prisma-cli/node_modules/prisma/build/index.js migrate deploy
 node scripts/seed-if-empty.mjs

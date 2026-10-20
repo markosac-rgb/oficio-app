@@ -8,7 +8,7 @@ export const LEGAL_PARTY = {
   address: "Circuito Berrugata 3303, Palmilla",
   rfc: "AECM880617U33",
   privacyEmail: "xionplanta@gmail.com",
-  updatedAt: "17 de octubre de 2026",
+  updatedAt: "20 de octubre de 2026",
 } as const;
 
 const LEGAL_PLACEHOLDERS: Record<string, string> = {

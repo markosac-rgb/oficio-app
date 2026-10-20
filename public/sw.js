@@ -1,4 +1,4 @@
-const CACHE = "oficio-shell-v1";
+const CACHE = "ofixio-shell-v1";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

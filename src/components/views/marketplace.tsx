@@ -529,7 +529,7 @@ export function ProviderView({ id }: { id: string }) {
       <Card className="mt-4">
         <h2 className="font-extrabold">Si cancelan</h2>
         <p className="mt-1 text-sm leading-5">{provider.cancellationPolicy}</p>
-        <Link href="/ayuda" className="mt-2 inline-block text-sm font-extrabold text-clay">Ver reglas de Oficio</Link>
+        <Link href="/ayuda" className="mt-2 inline-block text-sm font-extrabold text-clay">Ver reglas de Ofixio</Link>
       </Card>
       <section className="mt-5">
         <h2 className="text-lg font-extrabold">Reseñas</h2>

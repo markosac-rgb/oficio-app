@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Bell, MapPin, Search, SlidersHorizontal } from "lucide-react";
 import { useBadges } from "@/components/shell";
+import { Wordmark } from "@/components/wordmark";
 import type { MarketplaceStats } from "@/lib/types";
 
 export function HomeHero({
@@ -35,7 +36,8 @@ export function HomeHero({
     <section className="bg-gradient-to-b from-[#083d34] via-[#0e6b56] to-[#14906f] px-4 pt-4 pb-3 text-white">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-white/80">Hola 👋</p>
+          <Wordmark tone="onDark" className="text-lg text-white" />
+          <p className="mt-2 text-sm font-semibold text-white/80">Hola 👋</p>
           <h1 className="text-2xl leading-tight font-extrabold tracking-tight">{name}</h1>
         </div>
         <div className="flex items-center gap-1">
