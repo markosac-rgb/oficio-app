@@ -1,4 +1,4 @@
-import { commissionOf } from "@/lib/commission";
+import { commissionOf } from "./commission";
 
 export const POLICY_VERSION = "2026-10";
 export const LEGAL_VERSION = "2026-10-20.2";
