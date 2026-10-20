@@ -25,6 +25,10 @@ export async function POST(request: NextRequest) {
     const result = await syncMercadoPagoPayment(paymentId);
     return Response.json(result);
   } catch (error) {
+    if (error instanceof Error && (error.name === "MPNotFoundError" || /not.?found/i.test(error.message))) {
+      // Pago inexistente (p. ej. simulación de Mercado Pago): se acepta y se ignora.
+      return Response.json({ ok: true, ignored: true, reason: "payment_not_found" });
+    }
     console.error(error);
     return Response.json({ error: "No se pudo confirmar el pago con Mercado Pago." }, { status: 500 });
   }
