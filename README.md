@@ -54,7 +54,7 @@ Cada pieza externa está detrás de un adaptador en `src/adapters/`. En pantalla
 
 | Pieza | Qué hace hoy | Qué hace falta conectar |
 | --- | --- | --- |
-| Pagos | Con `MP_ACCESS_TOKEN`, Checkout Pro de Mercado Pago. Sin token, guarda el método y un recibo `DEMO-NO-COBRAR` marcado como simulado. Un token `TEST-` avisa que no se cobra dinero real. | Mercado Pago México. La comisión partida pide que el proveedor conecte su cuenta (`MP_CLIENT_ID` y `MP_CLIENT_SECRET`). |
+| Pagos | Con `MP_ACCESS_TOKEN`, Checkout Pro de Mercado Pago. Sin token, guarda el método y un recibo `DEMO-NO-COBRAR` marcado como simulado. En modo de prueba avisa que no se cobra dinero real y usa el checkout sandbox si Mercado Pago lo devuelve. | Mercado Pago México. La comisión partida pide que el proveedor conecte su cuenta (`MP_CLIENT_ID` y `MP_CLIENT_SECRET`). |
 | Mapas y códigos postales | Directorio local de algunos códigos y un mapa ilustrado para mover el punto. | Google Maps o Mapbox |
 | Código por SMS o correo | El código se muestra en la misma pantalla. No se envía. | Twilio, MessageBird u otro SMS en México, más correo transaccional |
 | Google | Entra a una cuenta de demostración fija. No abre Google. | OAuth de Google Cloud |
@@ -117,7 +117,8 @@ Variables en Render:
 | `OFICIO_PUBLIC_URL` | `https://oficio-app.onrender.com` (hace falta para Google y para las URLs de Mercado Pago) |
 | `GOOGLE_CLIENT_ID` | opcional |
 | `GOOGLE_CLIENT_SECRET` | opcional |
-| `MP_ACCESS_TOKEN` | Token de Mercado Pago México. Sin él, el pago queda simulado. Si empieza con `TEST-`, la pantalla avisa que no se cobra dinero real. |
+| `MP_ACCESS_TOKEN` | Token de Mercado Pago México. Sin él, el pago queda simulado. El de un usuario de prueba suele empezar con `APP_USR-`, no con `TEST-`. |
+| `MP_TEST_MODE` | `1` fuerza el aviso de prueba y el checkout sandbox. `0` lo apaga. Si no se define, se enciende con un token que empieza con `TEST-`, o si `GET /users/me` trae la etiqueta `test_user` (esa respuesta se guarda en memoria). |
 | `MP_PUBLIC_KEY` | opcional |
 | `MP_WEBHOOK_SECRET` | opcional. Si está, el webhook exige la firma `x-signature`. |
 | `MP_CLIENT_ID` | opcional. Junto con el secreto, enciende «Conectar Mercado Pago» para el proveedor. |
@@ -160,6 +161,8 @@ Los datos del responsable están en `src/lib/legal-party.ts`. Las páginas y el 
 La versión que guarda la aplicación al crear una cuenta es `2026-10-20.2`.
 
 ### Mercado Pago
+
+El modo de prueba muestra «Modo de prueba de Mercado Pago, no se cobra dinero real» y, si la preferencia trae `sandbox_init_point`, el cliente entra por ahí. `MP_TEST_MODE=1` lo enciende y `MP_TEST_MODE=0` lo apaga. Sin esa variable, un token `TEST-` lo enciende; si el token es otro (por ejemplo `APP_USR-` de un usuario de prueba), el servidor consulta `GET https://api.mercadopago.com/users/me` y lo enciende solo cuando `tags` incluye `test_user`.
 
 Webhook para registrar en el panel de Mercado Pago, en modo producción o de prueba según el token:
 

@@ -19,7 +19,8 @@ export default defineConfig({
   },
   webServer: {
     command:
-      "MP_MOCK=1 MP_ACCESS_TOKEN=TEST-ofixio-e2e MP_PUBLIC_KEY=TEST-public MP_WEBHOOK_SECRET=ofixio-e2e-webhook OFIXIO_COMMISSION_PCT=0 npm run iniciar",
+      "MP_MOCK=1 MP_ACCESS_TOKEN=APP_USR-ofixio-e2e MP_PUBLIC_KEY=APP_USR-public MP_WEBHOOK_SECRET=ofixio-e2e-webhook OFIXIO_COMMISSION_PCT=0 npm run iniciar",
+    // Sin MP_TEST_MODE: el token APP_USR- no activa el prefijo TEST-. El aviso sale de GET /users/me (tag test_user).
     url: "http://127.0.0.1:43123/api/health",
     reuseExistingServer: false,
     timeout: 180_000,

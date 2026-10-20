@@ -24,6 +24,8 @@ services:
         value: "0"
       - key: MP_ACCESS_TOKEN
         sync: false
+      - key: MP_TEST_MODE
+        sync: false
       - key: MP_PUBLIC_KEY
         sync: false
       - key: MP_WEBHOOK_SECRET

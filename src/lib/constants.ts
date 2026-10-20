@@ -170,7 +170,7 @@ export const INTEGRATIONS = [
     id: "pagos",
     name: "Pagos",
     needed: "MP_ACCESS_TOKEN de Mercado Pago México. Opcional: MP_WEBHOOK_SECRET y, para la comisión partida, MP_CLIENT_ID y MP_CLIENT_SECRET.",
-    now: "Con token, Checkout Pro cobra tarjeta, OXXO o SPEI. Sin token, se registra la elección y la pantalla dice simulado. No hay depósito en garantía.",
+    now: "Con token, Checkout Pro cobra tarjeta, OXXO o SPEI. Sin token, se registra la elección y la pantalla dice simulado. MP_TEST_MODE o un usuario de prueba encienden el aviso de que no se cobra dinero real. No hay depósito en garantía.",
   },
   {
     id: "mapas",

@@ -8,8 +8,56 @@ export function mpConfigured() {
   return Boolean(process.env.MP_ACCESS_TOKEN);
 }
 
-export function mpTestMode() {
-  return (process.env.MP_ACCESS_TOKEN ?? "").startsWith("TEST-");
+const TEST_MODE_CACHE = Symbol.for("ofixio.mp.testmode.cache");
+
+type TestModeCache = { token: string; testUser: boolean; expiresAt: number };
+
+function testModeCache() {
+  return globalThis as typeof globalThis & { [TEST_MODE_CACHE]?: TestModeCache | null };
+}
+
+export function clearMpTestModeCache() {
+  testModeCache()[TEST_MODE_CACHE] = null;
+}
+
+/** `1` fuerza el modo de prueba, `0` lo apaga. Vacío o ausente no decide. */
+function forcedTestMode(): boolean | null {
+  const raw = process.env.MP_TEST_MODE;
+  if (raw == null || raw.trim() === "") return null;
+  if (raw.trim() === "1") return true;
+  if (raw.trim() === "0") return false;
+  return null;
+}
+
+async function accountHasTestUserTag(token: string) {
+  const bag = testModeCache();
+  const hit = bag[TEST_MODE_CACHE];
+  if (hit && hit.token === token && hit.expiresAt > Date.now()) return hit.testUser;
+  const remember = (testUser: boolean, ttlMs: number) => {
+    bag[TEST_MODE_CACHE] = { token, testUser, expiresAt: Date.now() + ttlMs };
+    return testUser;
+  };
+  try {
+    const response = await fetch("https://api.mercadopago.com/users/me", {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok) return remember(false, 60_000);
+    const body = (await response.json()) as { tags?: unknown };
+    const tags = Array.isArray(body.tags) ? body.tags : [];
+    return remember(tags.some((tag) => String(tag) === "test_user"), 15 * 60_000);
+  } catch {
+    return remember(false, 60_000);
+  }
+}
+
+export async function mpTestMode() {
+  const forced = forcedTestMode();
+  if (forced != null) return forced;
+  const token = process.env.MP_ACCESS_TOKEN ?? "";
+  if (token.startsWith("TEST-")) return true;
+  if (!token) return false;
+  return accountHasTestUserTag(token);
 }
 
 export function mpOAuthConfigured() {
@@ -87,7 +135,8 @@ export async function createCheckoutPreference(input: {
       ...(input.marketplaceFeeMxn != null && input.marketplaceFeeMxn > 0 ? { marketplace_fee: input.marketplaceFeeMxn } : {}),
     },
   });
-  const url = mpTestMode() ? created.sandbox_init_point : created.init_point;
+  const test = await mpTestMode();
+  const url = (test && created.sandbox_init_point) || created.init_point;
   if (!created.id || !url) throw new Error("Mercado Pago no devolvió el checkout.");
   return { preferenceId: created.id, url };
 }

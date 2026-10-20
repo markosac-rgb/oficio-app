@@ -35,7 +35,7 @@ const STORE = Symbol.for("ofixio.mp.mock.store");
 function store(): Store {
   const bag = globalThis as typeof globalThis & { [STORE]?: Store };
   if (!bag[STORE]) {
-    bag[STORE] = { seq: 880000, preferences: new Map(), payments: new Map() };
+    bag[STORE] = { seq: Date.now(), preferences: new Map(), payments: new Map() };
   }
   return bag[STORE];
 }
@@ -151,8 +151,16 @@ async function mockResponse(url: string, init?: RequestInit) {
       marketplaceFee: Number(body.marketplace_fee ?? 0),
       backUrl: back,
     });
-    const checkout = `${origin}/pago/mercadopago/prueba?preference_id=${id}`;
-    return json(201, { id, init_point: checkout, sandbox_init_point: checkout, external_reference: body.external_reference });
+    const sandbox = `${origin}/pago/mercadopago/prueba?preference_id=${id}`;
+    const live = `https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=${id}`;
+    return json(201, { id, init_point: live, sandbox_init_point: sandbox, external_reference: body.external_reference });
+  }
+
+  if (method === "GET" && path === "/users/me") {
+    const auth = String(new Headers(init?.headers).get("authorization") ?? "");
+    const token = auth.replace(/^Bearer\s+/i, "");
+    const testUser = token.startsWith("TEST-") || token.startsWith("APP_USR-");
+    return json(200, { id: 1001, nickname: "TESTUSER", tags: testUser ? ["normal", "test_user"] : ["normal"] });
   }
 
   const paymentMatch = path.match(/^\/v1\/payments\/([^/]+)$/);

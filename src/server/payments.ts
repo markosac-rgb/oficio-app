@@ -76,6 +76,7 @@ export async function startMercadoPagoCheckout(input: {
     payerEmail: input.clientEmail || undefined,
   });
   const note = connected ? PROVIDER_NOTE : platformNote(money.pct);
+  const testMode = await mpTestMode();
   const existing = await prisma.payment.findUnique({ where: { requestId: input.requestId } });
   if (existing && ["approved", "pending", "refunded"].includes(existing.status)) {
     throw new HttpError(400, "Este servicio ya tiene un pago en Mercado Pago.");
@@ -95,7 +96,7 @@ export async function startMercadoPagoCheckout(input: {
         preferenceId: created.preferenceId,
         payee,
         note,
-        liveMode: !mpTestMode(),
+        liveMode: !testMode,
         externalPaymentId: null,
       },
     });
@@ -116,11 +117,11 @@ export async function startMercadoPagoCheckout(input: {
         payee,
         note,
         policyVersion: POLICY_VERSION,
-        liveMode: !mpTestMode(),
+        liveMode: !testMode,
       },
     });
   }
-  return { ok: true, redirectUrl: created.url, testMode: mpTestMode(), payee };
+  return { ok: true, redirectUrl: created.url, testMode, payee };
 }
 
 export async function syncMercadoPagoPayment(paymentId: string) {

@@ -575,13 +575,13 @@ function toPaymentView(payment: NonNullable<RequestBundle["payment"]>) {
   };
 }
 
-function checkoutOffer(request: RequestBundle) {
+async function checkoutOffer(request: RequestBundle) {
   const selected = selectedQuote(request);
   const money = selected ? commissionOf(selected.amountMxn) : null;
   const providerConnected = Boolean(selected?.provider.mpAccessToken);
   return {
     live: mpConfigured(),
-    testMode: mpTestMode(),
+    testMode: await mpTestMode(),
     commissionPct: commissionPct(),
     serviceMxn: money?.serviceMxn ?? null,
     feeMxn: money?.feeMxn ?? null,
@@ -688,7 +688,7 @@ export async function getRequest(user: AppUser, id: string): Promise<RequestDeta
         }
       : null,
     payment: request.payment ? toPaymentView(request.payment) : null,
-    checkout: checkoutOffer(request),
+    checkout: await checkoutOffer(request),
     review: request.review
       ? {
           rating: request.review.rating,
@@ -1304,7 +1304,7 @@ async function providerMercadoPago(providerId: string) {
     connected: Boolean(provider?.mpAccessToken),
     accountId: provider?.mpUserId ?? "",
     live: mpConfigured(),
-    testMode: mpTestMode(),
+    testMode: await mpTestMode(),
   };
 }
 
