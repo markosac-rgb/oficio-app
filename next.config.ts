@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   allowedDevOrigins: ["127.0.0.1"],
   devIndicators: { position: "top-right" },
-  serverExternalPackages: ["@prisma/client", "bcryptjs"],
+  serverExternalPackages: ["@prisma/client", "bcryptjs", "mercadopago"],
   // El host público llega por el proxy (trycloudflare, ngrok, etc.).
   // scripts/trust-proxy.cjs alinea Host cuando el proxy lo reescribe a una
   // dirección interna. Esta lista cubre el caso en que Origin y Host aún difieren.

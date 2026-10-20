@@ -2,13 +2,13 @@ Borrador — debe revisarlo un abogado antes de publicarse
 
 # Términos y condiciones de uso
 
-Versión del texto en la aplicación: 2026-10-20
+Versión del texto en la aplicación: 2026-10-20.2
 
 Fecha de última actualización: 20 de octubre de 2026
 
 Estos términos los publica **Marcos Iván Amezquita Canizales (persona física)**, con domicilio en **Circuito Berrugata 3303, Palmilla** y RFC **AECM880617U33** (en adelante, Ofixio o la plataforma). Ofixio es un mercado electrónico que pone en contacto, en México, a quien necesita un servicio para su casa con quien ofrece ese oficio por su cuenta.
 
-Al crear una cuenta y marcar la casilla de aceptación, confirmas que leíste estos términos y el aviso de privacidad, que tienes 18 años cumplidos y que aceptas ambos documentos. La aplicación guarda la fecha y la hora de esa aceptación y la versión del texto (2026-10-20). Esa acción es un mensaje de datos conforme al Código de Comercio.
+Al crear una cuenta y marcar la casilla de aceptación, confirmas que leíste estos términos y el aviso de privacidad, que tienes 18 años cumplidos y que aceptas ambos documentos. La aplicación guarda la fecha y la hora de esa aceptación y la versión del texto (2026-10-20.2). Esa acción es un mensaje de datos conforme al Código de Comercio.
 
 ## 1. Ofixio es intermediario
 
@@ -33,21 +33,25 @@ Se puede entrar con correo o teléfono y contraseña. La entrada con Google solo
 
 ## 4. Cotizaciones y acuerdos
 
-La cotización la manda el proveedor. El cliente la acepta o la deja pasar. La pantalla muestra el precio del servicio y, cuando aplica, una comisión de plataforma del 10% calculada sobre ese precio, para que el desglose se entienda. En la versión actual esa comisión no se cobra: si hay un pago, ocurre entre cliente y proveedor, fuera de Ofixio.
+La cotización la manda el proveedor. El cliente la acepta o la deja pasar. La pantalla muestra el precio acordado y la comisión de Ofixio, que es un porcentaje de ese precio. El porcentaje lo define el servidor (variable OFIXIO_COMMISSION_PCT) y, si no se define, es 0. La comisión no se suma encima del precio: sale de él.
 
 Antes de confirmar, el proveedor ve la colonia, la ciudad, el código postal y un punto aproximado. La calle y la referencia se comparten cuando el servicio queda confirmado (también en camino, en proceso o terminado) y, si hay una aclaración abierta, con la administración.
 
 ## 5. Pagos
 
-Hoy la aplicación solo registra el medio de pago que las partes dicen haber acordado —por ejemplo, efectivo o una transferencia entre ellas— y el estado de ese registro.
+El cliente puede pagar el precio acordado en pesos mexicanos con tarjeta, en OXXO o por SPEI, dentro del checkout de Mercado Pago (Checkout Pro), cuando el servidor tiene configurado el token de Mercado Pago. También puede acordar efectivo directo con el proveedor. Ofixio no pide ni guarda el número de tarjeta ni la CLABE: esos datos los captura Mercado Pago.
 
-Ofixio no procesa tarjetas, no pide el número de tarjeta ni la CLABE, no retiene dinero, no opera un depósito en garantía (escrow) y no garantiza que el dinero se pague o se devuelva. No hay protección financiera de la plataforma sobre ese pago.
+Si el proveedor conectó su propia cuenta de Mercado Pago, el pago entra a esa cuenta. La comisión, cuando es mayor que cero, la descuenta Mercado Pago y se la abona a Ofixio. Si el proveedor no conectó su cuenta, el pago entra a la cuenta de Mercado Pago de Ofixio y Ofixio le paga después al proveedor. Eso no es un depósito en garantía ni una custodia: Ofixio no retiene el dinero del cliente para garantizar el servicio.
 
-Si la pantalla dice «simulado» o muestra la referencia DEMO-NO-COBRAR, ese registro no es un cobro.
+Ofixio no ofrece una protección al comprador distinta de la que Mercado Pago publique para ese medio de pago. Las devoluciones y las disputas de un pago hecho en Mercado Pago se atienden en Mercado Pago, con las reglas de Mercado Pago. Ofixio no procesa ese reembolso por su cuenta.
+
+El efectivo no pasa por Mercado Pago ni por Ofixio. Se lo entrega el cliente al proveedor, y Ofixio no puede devolverlo.
+
+Si la pantalla dice «simulado», «Modo de prueba de Mercado Pago, no se cobra dinero real» o muestra la referencia DEMO-NO-COBRAR, ese registro no es un cobro de dinero real. Sin token de Mercado Pago, la aplicación solo anota el medio que las partes dicen haber elegido.
 
 ## 6. Cancelaciones
 
-Cualquiera de las dos personas puede cancelar desde la solicitud e indicar un motivo. Como Ofixio no retiene el dinero, la plataforma no hace reembolsos automáticos. Si ya se entregó dinero entre las partes, ellas lo aclaran directamente. Lo que se explica en Ayuda describe los momentos de la solicitud; no crea un depósito ni una garantía de Ofixio.
+Cualquiera de las dos personas puede cancelar desde la solicitud e indicar un motivo. Ofixio no retiene el dinero y no hace reembolsos automáticos. Si el pago se hizo en Mercado Pago, la devolución o la disputa se solicita en Mercado Pago. Si el dinero se entregó en efectivo, lo aclaran las dos personas. Lo que se explica en Ayuda describe los momentos de la solicitud; no crea un depósito ni una garantía de Ofixio.
 
 ## 7. Reseñas, chat y contenido
 

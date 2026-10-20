@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SuccessBanner, useCelebration } from "@/components/celebrate";
-import { ADVANCE_LABEL, PAYMENT_METHODS, STATUS_LABEL, STATUS_ORDER, breakdown } from "@/lib/constants";
+import { ADVANCE_LABEL, PAYMENT_METHODS, STATUS_LABEL, STATUS_ORDER } from "@/lib/constants";
 import { api, ApiError } from "@/lib/api";
 import { formatWhen, mxn } from "@/lib/format";
 import { fileToJpegDataUrl } from "@/lib/images";
@@ -139,6 +139,19 @@ export function RequestDetailView({ id }: { id: string }) {
       <h1 className="text-2xl font-extrabold">{request.title}</h1>
       <p className="mt-1 text-lg font-extrabold">{statusHeadline(request.status, request.selectedQuoteId)}</p>
       <Card className="mt-4"><Timeline request={request} /></Card>
+      {request.payment && request.payment.events.length > 0 ? (
+        <Card className="mt-4" data-testid="payment-timeline">
+          <h2 className="font-extrabold">Pago</h2>
+          <ol className="mt-2 space-y-2">
+            {request.payment.events.map((event) => (
+              <li key={event.status}>
+                <p className="font-bold">{event.label}</p>
+                <p className="text-sm text-muted">{formatWhen(event.createdAt)}{event.detail ? ` · ${event.detail}` : ""}</p>
+              </li>
+            ))}
+          </ol>
+        </Card>
+      ) : null}
       <Card className="mt-4">
         <h2 className="font-extrabold">Qué se pidió</h2>
         <p className="mt-1 whitespace-pre-wrap text-base leading-6">{request.description}</p>
@@ -176,7 +189,11 @@ export function RequestDetailView({ id }: { id: string }) {
 
       <section className="mt-5">
         <h2 className="text-lg font-extrabold">{request.quotes.length > 1 ? "Compara cotizaciones" : "Cotización"}</h2>
-        <p className="text-sm text-muted">No se cobra hasta que aceptes una cotización y registres el método de pago.</p>
+        <p className="text-sm text-muted">
+          {request.checkout.live
+            ? "No se cobra hasta que pagues en Mercado Pago, o acuerdes efectivo con el proveedor."
+            : "No se cobra hasta que aceptes una cotización y registres el método de pago. Sin Mercado Pago, ese registro es simulado."}
+        </p>
         <div className="mt-3 space-y-3">
           {request.quotes.length === 0 ? <EmptyState title="Todavía no hay cotización" body="Avisamos a quien trabaja en tu zona. También puedes escribir por el chat." /> : null}
           {request.quotes.map((quote) => (
@@ -367,12 +384,20 @@ export function RequestDetailView({ id }: { id: string }) {
   );
 }
 
+function TestBanner() {
+  return (
+    <p data-testid="mp-test-banner" className="mt-3 rounded-2xl bg-[#f4f8d8] px-3 py-2 text-sm font-extrabold text-[#062f35]">
+      Modo de prueba de Mercado Pago, no se cobra dinero real
+    </p>
+  );
+}
+
 export function PaymentView({ id }: { id: string }) {
   const [request, setRequest] = useState<RequestDetail | null>(null);
   const [method, setMethod] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState("");
-  const [done, setDone] = useState("");
+  const [busy, setBusy] = useState(false);
 
   function load() {
     api<RequestDetail>(`/api/requests/${id}`)
@@ -380,31 +405,51 @@ export function PaymentView({ id }: { id: string }) {
       .catch((reason: unknown) => setError(errorText(reason)));
   }
   useEffect(() => {
-    load();
+    const params = new URLSearchParams(window.location.search);
+    const paymentId = params.get("payment_id") || params.get("collection_id");
+    const synced = paymentId
+      ? api(`/api/requests/${id}/payment/sync`, { method: "POST", body: JSON.stringify({ paymentId }) }).catch((reason: unknown) => setError(errorText(reason)))
+      : Promise.resolve();
+    void synced.then(() => load());
   }, [id]);
 
   if (error && !request) return <div className="px-4 py-6"><ErrorState message={error} onRetry={load} /></div>;
   if (!request) return <LoadingBlock label="Cargando el pago…" />;
   const quote = request.quotes.find((item) => item.id === request.selectedQuoteId);
-  const money = quote ? breakdown(quote.amountMxn) : null;
+  const offer = request.checkout;
+  const settled = request.payment && !["rejected", "checkout"].includes(request.payment.status);
 
-  if (request.payment) {
+  if (settled && request.payment) {
     const chosen = PAYMENT_METHODS.find((item) => item.id === request.payment?.method);
     return (
       <div className="px-4 pt-4 pb-28" data-testid="receipt">
-        <h1 className="text-2xl font-extrabold">Recibo</h1>
-        <DemoBanner>Esto no es un comprobante fiscal ni un cargo bancario. La referencia no sirve para pagar.</DemoBanner>
+        <h1 className="text-2xl font-extrabold">{request.payment.simulated ? "Recibo" : "Pago"}</h1>
+        {request.payment.simulated ? <DemoBanner>Esto no es un comprobante fiscal ni un cargo bancario. La referencia no sirve para pagar.</DemoBanner> : null}
+        {offer.testMode && !request.payment.simulated ? <TestBanner /> : null}
         <Card className="mt-4 space-y-2" data-testid="pay-recorded">
           <p><span className="text-muted">Servicio: </span>{request.title}</p>
-          <p><span className="text-muted">Folio demo: </span>{request.payment.reference}</p>
+          <p data-testid="payment-status"><span className="text-muted">Estado: </span>{request.payment.statusLabel}</p>
+          {request.payment.externalPaymentId ? <p data-testid="payment-id"><span className="text-muted">Pago Mercado Pago: </span>{request.payment.externalPaymentId}</p> : null}
+          {request.payment.simulated ? <p><span className="text-muted">Folio demo: </span>{request.payment.reference}</p> : null}
           <p><span className="text-muted">Fecha: </span>{formatWhen(request.payment.createdAt)}</p>
-          <p><span className="text-muted">Método: </span>{chosen?.name}</p>
-          <p>Costo del servicio: {mxn(request.payment.serviceMxn)} MXN</p>
-          <p>Comisión de la plataforma (10%): {mxn(request.payment.feeMxn)} MXN</p>
-          <p className="text-xl font-extrabold">Total mostrado: {mxn(request.payment.totalMxn)} MXN</p>
-          <p className="text-sm leading-5">{request.payment.note}</p>
-          <p className="text-sm font-bold">Estado: registrado en la demo. No hubo cobro ni custodia de dinero.</p>
+          <p><span className="text-muted">Método: </span>{chosen?.name ?? request.payment.method}</p>
+          <p>Precio acordado: {mxn(request.payment.serviceMxn)} MXN</p>
+          <p>Comisión de Ofixio ({offer.commissionPct}%): {mxn(request.payment.feeMxn)} MXN</p>
+          <p className="text-xl font-extrabold">Pagas: {mxn(request.payment.totalMxn)} MXN</p>
+          <p className="text-sm leading-5" data-testid="mp-payee-note">{request.payment.note}</p>
+          {request.payment.ticketUrl ? <a className="font-extrabold text-clay underline" href={request.payment.ticketUrl}>Ver ficha de pago</a> : null}
+          {request.payment.simulated ? <p className="text-sm font-bold">Estado: registrado en la demo. No hubo cobro ni custodia de dinero.</p> : null}
         </Card>
+        {request.payment.events.length > 0 ? (
+          <Card className="mt-4" data-testid="payment-timeline">
+            <h2 className="font-extrabold">Historial del pago</h2>
+            <ol className="mt-2 space-y-2">
+              {request.payment.events.map((event) => (
+                <li key={event.status}><span className="font-bold">{event.label}</span> <span className="text-sm text-muted">{formatWhen(event.createdAt)}</span></li>
+              ))}
+            </ol>
+          </Card>
+        ) : null}
         <Button asChild className="mt-4 w-full"><Link href={`/solicitudes/${id}`}>Volver al seguimiento</Link></Button>
       </div>
     );
@@ -413,8 +458,9 @@ export function PaymentView({ id }: { id: string }) {
   return (
     <div className="px-4 pt-4 pb-32">
       <h1 className="text-2xl font-extrabold">Pago y resumen</h1>
-      <DemoBanner>Ningún método cobra de verdad. Eliges y queda un recibo de esa elección.</DemoBanner>
-      {!request.permissions.canPay || !money || !quote ? (
+      {offer.live && offer.testMode ? <TestBanner /> : null}
+      {offer.live ? null : <DemoBanner>Ningún método cobra de verdad. Eliges y queda un recibo de esa elección.</DemoBanner>}
+      {!request.permissions.canPay || offer.serviceMxn == null || !quote ? (
         <div className="mt-4"><EmptyState title="Aún no toca pagar" body="Primero acepta una cotización y confirma la fecha." action={<Button asChild><Link href={`/solicitudes/${id}`}>Volver a la solicitud</Link></Button>} /></div>
       ) : (
         <form
@@ -422,16 +468,24 @@ export function PaymentView({ id }: { id: string }) {
           onSubmit={(event) => {
             event.preventDefault();
             setError("");
+            setBusy(true);
+            const chosen = offer.live && method !== "CASH" ? "MERCADOPAGO" : method;
             void api(`/api/requests/${id}/payment`, {
               method: "POST",
-              body: JSON.stringify({ method, acceptedPolicy: accepted }),
+              body: JSON.stringify({ method: chosen, acceptedPolicy: accepted }),
             })
               .then((result) => {
-                const recorded = result as { reference?: string };
-                setDone(recorded.reference ?? "Listo");
+                const redirect = (result as { redirectUrl?: string }).redirectUrl;
+                if (redirect) {
+                  window.location.href = redirect;
+                  return;
+                }
                 load();
               })
-              .catch((reason: unknown) => setError(errorText(reason)));
+              .catch((reason: unknown) => {
+                setBusy(false);
+                setError(errorText(reason));
+              });
           }}
         >
           <Card data-testid="fee-breakdown">
@@ -439,32 +493,61 @@ export function PaymentView({ id }: { id: string }) {
             <p className="text-sm text-muted">{request.title}</p>
             <p className="text-sm">Cita: {formatWhen(request.scheduledAt)}</p>
             <div className="mt-3 space-y-1 text-base">
-              <p>Costo del servicio: {mxn(money.serviceMxn)} MXN</p>
-              <p>Comisión de la plataforma (10%): {mxn(money.feeMxn)} MXN</p>
-              <p className="text-xl font-extrabold">Total mostrado: {mxn(money.totalMxn)} MXN</p>
+              <p>Precio acordado: {mxn(offer.serviceMxn)} MXN</p>
+              <p>Comisión de Ofixio ({offer.commissionPct}%): {mxn(offer.feeMxn ?? 0)} MXN</p>
+              <p className="text-xl font-extrabold">Pagas: {mxn(offer.totalMxn ?? offer.serviceMxn)} MXN</p>
             </div>
-            <p className="mt-2 text-sm leading-5 text-muted">La comisión se muestra antes de confirmar. En esta demo no se cobra, ni en tarjeta ni en efectivo.</p>
+            {offer.live ? (
+              <p className="mt-2 text-sm leading-5 text-muted" data-testid="mp-payee-note">
+                {offer.providerConnected
+                  ? "El pago entra a la cuenta de Mercado Pago del proveedor. Si hay comisión, Mercado Pago se la descuenta y se la abona a Ofixio. Las devoluciones y las disputas se atienden en Mercado Pago. Ofixio no retiene el dinero."
+                  : "Ofixio recibe el pago en su cuenta de Mercado Pago y le paga al proveedor. No es un depósito ni una custodia. Las devoluciones y las disputas se atienden en Mercado Pago."}
+              </p>
+            ) : (
+              <p className="mt-2 text-sm leading-5 text-muted">La comisión se muestra antes de confirmar. En esta demo no se cobra, ni en tarjeta ni en efectivo.</p>
+            )}
           </Card>
-          <fieldset className="space-y-2">
-            <legend className="text-sm font-extrabold">Método</legend>
-            {PAYMENT_METHODS.map((item) => (
-              <label key={item.id} className={`block rounded-3xl border p-3 ${method === item.id ? "border-clay bg-white" : "border-line bg-sand"}`}>
+          {offer.live ? (
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-extrabold">Cómo pagar</legend>
+              <label className={`block rounded-3xl border p-3 ${method === "MERCADOPAGO" ? "border-clay bg-white" : "border-line bg-sand"}`}>
                 <span className="flex items-center gap-2 font-extrabold">
-                  <input type="radio" name="metodo" data-testid={`pay-${item.id}`} checked={method === item.id} onChange={() => setMethod(item.id)} />
-                  {item.name}
-                  <span className="text-sm font-bold text-muted">{item.summary}</span>
+                  <input type="radio" name="metodo" data-testid="pay-mp" checked={method === "MERCADOPAGO"} onChange={() => setMethod("MERCADOPAGO")} />
+                  Mercado Pago
+                  <span className="text-sm font-bold text-muted">Tarjeta, OXXO o SPEI</span>
                 </span>
-                <span className="mt-1 block text-sm leading-5">{item.protection}</span>
               </label>
-            ))}
-          </fieldset>
+              <label className={`block rounded-3xl border p-3 ${method === "CASH" ? "border-clay bg-white" : "border-line bg-sand"}`}>
+                <span className="flex items-center gap-2 font-extrabold">
+                  <input type="radio" name="metodo" data-testid="pay-CASH" checked={method === "CASH"} onChange={() => setMethod("CASH")} />
+                  Efectivo
+                  <span className="text-sm font-bold text-muted">Se lo pagas al proveedor</span>
+                </span>
+                <span className="mt-1 block text-sm leading-5">Ofixio no toca ese dinero. No pasa por Mercado Pago.</span>
+              </label>
+            </fieldset>
+          ) : (
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-extrabold">Método</legend>
+              {PAYMENT_METHODS.map((item) => (
+                <label key={item.id} className={`block rounded-3xl border p-3 ${method === item.id ? "border-clay bg-white" : "border-line bg-sand"}`}>
+                  <span className="flex items-center gap-2 font-extrabold">
+                    <input type="radio" name="metodo" data-testid={`pay-${item.id}`} checked={method === item.id} onChange={() => setMethod(item.id)} />
+                    {item.name}
+                    <span className="text-sm font-bold text-muted">{item.summary}</span>
+                  </span>
+                  <span className="mt-1 block text-sm leading-5">{item.protection}</span>
+                </label>
+              ))}
+            </fieldset>
+          )}
           <label className="flex items-start gap-2 text-sm leading-5">
             <input data-testid="pay-policy" type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} className="mt-1 h-5 w-5" />
-            <span>Leí las reglas de cancelación y aclaraciones. Entiendo que Ofixio no retiene el dinero.</span>
+            <span>Leí las reglas de cancelación y aclaraciones. Entiendo que Ofixio no retiene el dinero y que, si pago en Mercado Pago, las devoluciones las atiende Mercado Pago.</span>
           </label>
+          {request.payment?.status === "rejected" ? <p className="font-bold">El pago anterior fue rechazado. Puedes intentar de nuevo.</p> : null}
           {error ? <ErrorState message={error} /> : null}
-          {done ? <p className="font-bold">Elección registrada. Folio {done}.</p> : null}
-          <Button data-testid="pay-submit" className="w-full">Registrar esta elección</Button>
+          <Button data-testid="pay-submit" className="w-full" disabled={busy}>{offer.live && method !== "CASH" ? "Continuar a Mercado Pago" : "Registrar esta elección"}</Button>
         </form>
       )}
     </div>

@@ -692,14 +692,14 @@ async function main() {
   });
   await prisma.payment.upsert({
     where: { requestId: "req_ejemplo_ana" },
-    update: {},
+    update: { feeMxn: 0, totalMxn: 600 },
     create: {
       id: "pay_ejemplo_ana",
       requestId: "req_ejemplo_ana",
       method: "CASH",
       serviceMxn: 600,
-      feeMxn: 60,
-      totalMxn: 660,
+      feeMxn: 0,
+      totalMxn: 600,
       status: "registrado_simulado",
       simulated: true,
       adapter: "demo",

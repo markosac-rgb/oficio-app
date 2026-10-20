@@ -121,17 +121,40 @@ export type QuoteView = {
   createdAt: string;
 };
 
+export type PaymentEventView = {
+  status: string;
+  label: string;
+  detail: string;
+  createdAt: string;
+};
+
 export type PaymentView = {
   method: string;
   serviceMxn: number;
   feeMxn: number;
   totalMxn: number;
   status: string;
+  statusLabel: string;
   simulated: boolean;
   adapter: string;
   reference: string;
   note: string;
+  payee: string;
+  externalPaymentId: string;
+  ticketUrl: string;
   createdAt: string;
+  events: PaymentEventView[];
+};
+
+export type CheckoutOffer = {
+  live: boolean;
+  testMode: boolean;
+  commissionPct: number;
+  serviceMxn: number | null;
+  feeMxn: number | null;
+  totalMxn: number | null;
+  payee: "platform" | "provider";
+  providerConnected: boolean;
 };
 
 export type RequestSummary = {
@@ -208,6 +231,7 @@ export type RequestDetail = {
   quotes: QuoteView[];
   myQuote: { id: string; amountMxn: number; message: string; etaMinutes: number | null; status: string } | null;
   payment: PaymentView | null;
+  checkout: CheckoutOffer;
   review: { rating: number; comment: string; createdAt: string } | null;
   permissions: {
     canQuote: boolean;

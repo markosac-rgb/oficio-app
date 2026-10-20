@@ -62,6 +62,13 @@ type Dashboard = {
   achievements: Achievement[];
   documents: { id: string; kind: string; label: string; status: string; note: string }[];
   trustNote: string;
+  mercadopago?: {
+    oauthAvailable: boolean;
+    connected: boolean;
+    accountId: string;
+    live: boolean;
+    testMode: boolean;
+  };
 };
 
 export function PanelView() {
@@ -86,6 +93,12 @@ export function PanelView() {
   useEffect(() => {
     if (user?.role === "PROVIDER") load();
   }, [user]);
+  useEffect(() => {
+    const mp = new URLSearchParams(window.location.search).get("mp");
+    if (mp === "conectado") setNote("Conectamos tu cuenta de Mercado Pago.");
+    if (mp === "error") setNote("No se pudo conectar Mercado Pago. Intenta de nuevo.");
+    if (mp === "apagado") setNote("Faltan MP_CLIENT_ID y MP_CLIENT_SECRET.");
+  }, []);
 
   if (user && user.role !== "PROVIDER") {
     return (
@@ -109,7 +122,7 @@ export function PanelView() {
       <Card>
         <p className="text-sm text-muted">Ingresos registrados esta semana</p>
         <p className="text-3xl font-extrabold">{mxn(board.earningsWeekMxn)} MXN</p>
-        <p className="text-sm leading-5 text-muted">Desde el lunes, solo trabajos terminados con método registrado. No es un depósito. La comisión mostrada en total ({mxn(board.feesShownMxn)} MXN) no se cobra. Histórico: {mxn(board.earningsMxn)} MXN · {board.completedJobs} trabajos.</p>
+        <p className="text-sm leading-5 text-muted">Desde el lunes, solo trabajos terminados con un pago registrado. No es un depósito. La comisión anotada suma {mxn(board.feesShownMxn)} MXN. Si el pago fue simulado, no hubo cobro. Si fue Mercado Pago, el dinero lo movió Mercado Pago. Histórico: {mxn(board.earningsMxn)} MXN · {board.completedJobs} trabajos.</p>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-line">
           <div className="h-full rounded-full bg-clay" style={{ width: `${Math.min(100, Math.round((board.completedThisWeek / Math.max(1, board.goalTarget)) * 100))}%` }} />
         </div>
@@ -125,6 +138,23 @@ export function PanelView() {
           </div>
         ))}
       </div>
+      <Card data-testid="mp-connect">
+        <h2 className="font-extrabold">Mercado Pago</h2>
+        {board.mercadopago?.oauthAvailable ? (
+          <>
+            <p className="mt-1 text-sm leading-5">
+              {board.mercadopago.connected
+                ? `Tu cuenta está conectada${board.mercadopago.accountId ? ` (${board.mercadopago.accountId})` : ""}. Los cobros de tus trabajos entran ahí y Mercado Pago aparta la comisión de Ofixio, si la hay.`
+                : "Conecta tu cuenta para que el pago del cliente entre a tu Mercado Pago. Si no la conectas, Ofixio recibe el pago y te lo paga."}
+            </p>
+            <Button asChild className="mt-3" variant={board.mercadopago.connected ? "secondary" : "default"}>
+              <a href="/api/provider/mercadopago/connect" data-testid="connect-mp">{board.mercadopago.connected ? "Reconectar Mercado Pago" : "Conectar Mercado Pago"}</a>
+            </Button>
+          </>
+        ) : (
+          <p className="mt-1 text-sm leading-5">La conexión de la cuenta del proveedor está apagada: faltan MP_CLIENT_ID y MP_CLIENT_SECRET. Si hay token de la plataforma, el pago entra a la cuenta de Ofixio y Ofixio le paga al proveedor. No es un depósito.</p>
+        )}
+      </Card>
       <Card>
         <h2 className="font-extrabold">Disponibilidad</h2>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -533,7 +563,7 @@ export function HelpView() {
       </Card>
       <Card>
         <h2 className="font-extrabold">Pagos</h2>
-        <p className="mt-1 text-sm">La comisión de la plataforma es 10% y se muestra antes de confirmar. En esta demo no se cobra.</p>
+        <p className="mt-1 text-sm leading-5">La comisión de Ofixio es un porcentaje del precio acordado y se muestra antes de pagar. Por defecto es 0. No se suma encima del precio. Si el proveedor conectó Mercado Pago, Mercado Pago se la descuenta. Si no, Ofixio recibe el pago y le paga al proveedor. No hay depósito en garantía. Las devoluciones de un pago de Mercado Pago se atienden en Mercado Pago.</p>
         <div className="mt-3 space-y-3">
           {PAYMENT_METHODS.map((method) => (
             <div key={method.id}>
@@ -587,11 +617,12 @@ type Summary = { openReports: number; users: Record<string, number>; requests: R
 
 export function AdminView() {
   const { user } = useSession();
-  const [tab, setTab] = useState<"personas" | "solicitudes" | "reportes">("personas");
+  const [tab, setTab] = useState<"personas" | "solicitudes" | "pagos" | "reportes">("personas");
   const [summary, setSummary] = useState<Summary | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [requests, setRequests] = useState<RequestSummary[]>([]);
   const [reports, setReports] = useState<ReportItem[]>([]);
+  const [payments, setPayments] = useState<{ id: string; title: string; statusLabel: string; totalMxn: number; method: string; payee: string; simulated: boolean; externalPaymentId: string; reference: string }[]>([]);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const [demoData, setDemoData] = useState(true);
@@ -603,13 +634,15 @@ export function AdminView() {
       api<{ users: AdminUser[] }>("/api/admin/users"),
       api<{ requests: RequestSummary[] }>("/api/admin/requests"),
       api<{ reports: ReportItem[] }>("/api/admin/reports"),
+      api<{ payments: { id: string; title: string; statusLabel: string; totalMxn: number; method: string; payee: string; simulated: boolean; externalPaymentId: string; reference: string }[] }>("/api/admin/payments"),
       api<{ demoData: boolean }>("/api/admin/settings"),
     ])
-      .then(([nextSummary, nextUsers, nextRequests, nextReports, settings]) => {
+      .then(([nextSummary, nextUsers, nextRequests, nextReports, nextPayments, settings]) => {
         setSummary(nextSummary);
         setUsers(nextUsers.users);
         setRequests(nextRequests.requests);
         setReports(nextReports.reports);
+        setPayments(nextPayments.payments);
         setDemoData(settings.demoData);
         setError("");
       })
@@ -656,8 +689,8 @@ export function AdminView() {
         <Card><p className="text-2xl font-extrabold">{summary.users.PROVIDER ?? 0}</p><p className="text-xs font-bold">Proveedores</p></Card>
         <Card><p className="text-2xl font-extrabold">{summary.users.CLIENT ?? 0}</p><p className="text-xs font-bold">Clientes</p></Card>
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        {(["personas", "solicitudes", "reportes"] as const).map((item) => (
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        {(["personas", "solicitudes", "pagos", "reportes"] as const).map((item) => (
           <button key={item} type="button" onClick={() => setTab(item)} className={`h-10 rounded-2xl text-sm font-extrabold capitalize ${tab === item ? "bg-clay text-white" : "bg-white"}`}>{item}</button>
         ))}
       </div>
@@ -702,6 +735,20 @@ export function AdminView() {
               <p className="font-extrabold">{item.title}</p>
               <p className="text-sm">{item.statusLabel} · {item.neighborhood} · {item.counterpart}</p>
             </Link>
+          ))}
+        </div>
+      ) : null}
+      {tab === "pagos" ? (
+        <div className="mt-4 space-y-3" data-testid="admin-payments">
+          {payments.length === 0 ? <EmptyState title="No hay pagos" body="Cuando alguien registre un método o pague en Mercado Pago, aparecerá aquí." /> : null}
+          {payments.map((item) => (
+            <Card key={item.id}>
+              <p className="font-extrabold">{item.title}</p>
+              <p className="text-sm">{item.statusLabel} · {item.method} · {mxn(item.totalMxn)} MXN</p>
+              <p className="text-sm text-muted">{item.simulated ? "Simulado" : "Mercado Pago"} · {item.payee === "provider" ? "entra al proveedor" : item.payee === "platform" ? "entra a Ofixio" : "fuera de Mercado Pago"}</p>
+              {item.externalPaymentId ? <p className="text-sm">Pago {item.externalPaymentId}</p> : null}
+              {item.simulated ? <p className="text-sm">{item.reference}</p> : null}
+            </Card>
           ))}
         </div>
       ) : null}

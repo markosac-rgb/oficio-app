@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 
@@ -51,7 +52,7 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await page.getByTestId("reg-submit").click();
   await page.waitForURL("**/inicio");
   await page.getByTestId("nav-perfil").click();
-  await expect(page.getByTestId("legal-acceptance")).toContainText("2026-10-20");
+  await expect(page.getByTestId("legal-acceptance")).toContainText("2026-10-20.2");
   await expect(page.getByTestId("legal-acceptance")).toContainText("no aceptadas");
   await page.getByTestId("logout").click();
   await page.waitForURL("**/entrar");
@@ -112,6 +113,7 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
 
   await login(page, "jorge.ramirez@oficio.demo");
   await page.goto("/panel");
+  await expect(page.getByTestId("mp-connect")).toContainText("MP_CLIENT_ID");
   await expect(page.getByText(stamp)).toBeVisible();
   await page.getByRole("heading", { name: "Tu panel" }).scrollIntoViewIfNeeded();
   await shot(page, "09-panel-proveedor");
@@ -141,16 +143,41 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await page.getByTestId("schedule-submit").click();
   await expect(page.getByTestId("go-pay")).toBeVisible();
   await page.getByTestId("go-pay").click();
-  await expect(page.getByTestId("fee-breakdown")).toContainText("Costo del servicio: $850 MXN");
-  await expect(page.getByTestId("fee-breakdown")).toContainText("Comisión de la plataforma (10%): $85 MXN");
-  await expect(page.getByTestId("demo-banner")).toBeVisible();
+  await expect(page.getByTestId("fee-breakdown")).toContainText("Precio acordado: $850 MXN");
+  await expect(page.getByTestId("fee-breakdown")).toContainText("Comisión de Ofixio (0%): $0 MXN");
+  await expect(page.getByTestId("fee-breakdown")).toContainText("Pagas: $850 MXN");
+  await expect(page.getByTestId("mp-test-banner")).toHaveText("Modo de prueba de Mercado Pago, no se cobra dinero real");
+  await expect(page.getByTestId("mp-payee-note")).toContainText("Ofixio recibe el pago");
+  await expect(page.getByTestId("mp-payee-note")).toContainText("No es un depósito");
   await shot(page, "12-pago");
-  await page.getByTestId("pay-CASH").check();
+  await page.getByTestId("pay-mp").check();
   await page.getByTestId("pay-policy").check();
   await page.getByTestId("pay-submit").click();
+  await expect(page.getByTestId("mp-mock-approve")).toBeVisible();
+  await page.getByTestId("mp-mock-approve").click();
   await expect(page.getByTestId("receipt")).toBeVisible();
-  await expect(page.getByText("DEMO-NO-COBRAR")).toBeVisible();
-  await expect(page.getByText(/no hubo cobro/i).first()).toBeVisible();
+  await expect(page.getByTestId("payment-status")).toContainText("Pago aprobado");
+  await expect(page.getByTestId("payment-timeline")).toContainText("Pago aprobado");
+  const mpId = ((await page.getByTestId("payment-id").innerText()).match(/\d+/) ?? [""])[0];
+  const signed = (id: string) => {
+    const ts = String(Date.now());
+    const requestId = "e2e-mp";
+    const manifest = `id:${id};request-id:${requestId};ts:${ts};`;
+    const v1 = createHmac("sha256", "ofixio-e2e-webhook").update(manifest).digest("hex");
+    return { headers: { "x-signature": `ts=${ts},v1=${v1}`, "x-request-id": requestId }, ts };
+  };
+  const replaySign = signed(mpId);
+  const replay = await page.request.post(`/api/payments/mercadopago/webhook?data.id=${mpId}&type=payment`, {
+    headers: replaySign.headers,
+    data: { type: "payment", data: { id: mpId } },
+  });
+  expect(replay.ok()).toBeTruthy();
+  expect((await replay.json()).idempotent).toBe(true);
+  const forged = await page.request.post(`/api/payments/mercadopago/webhook?data.id=${mpId}&type=payment`, {
+    headers: { "x-signature": "ts=1,v1=deadbeef", "x-request-id": "e2e-mp" },
+    data: { type: "payment", data: { id: mpId } },
+  });
+  expect(forged.status()).toBe(401);
   await shot(page, "13-recibo");
 
   await page.goto(requestUrl);
@@ -201,6 +228,24 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
   await page.goto("/admin");
   await expect(page.getByRole("heading", { name: "Administración" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Marcar identidad verificada" }).first()).toBeVisible();
+  await page.getByRole("button", { name: "pagos" }).click();
+  await expect(page.getByTestId("admin-payments")).toContainText("Pago aprobado");
+  await expect(page.getByTestId("admin-payments")).toContainText(mpId);
   await shot(page, "20-admin");
   await shot(page, "admin");
+
+  const refunded = await page.request.post("/api/payments/mercadopago/mock-pay", {
+    data: { paymentId: mpId, outcome: "refunded" },
+  });
+  expect(refunded.ok()).toBeTruthy();
+  const refundSign = signed(mpId);
+  const refundHook = await page.request.post(`/api/payments/mercadopago/webhook?data.id=${mpId}&type=payment`, {
+    headers: refundSign.headers,
+    data: { action: "payment.updated", type: "payment", data: { id: mpId } },
+  });
+  expect(refundHook.ok()).toBeTruthy();
+  await page.goto(`${requestUrl}/pago`);
+  await expect(page.getByTestId("payment-status")).toContainText("Pago reembolsado");
+  await expect(page.getByTestId("payment-timeline")).toContainText("Pago reembolsado");
+  await expect(page.getByTestId("payment-timeline")).not.toContainText("Pago pendiente");
 });

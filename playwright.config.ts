@@ -18,9 +18,10 @@ export default defineConfig({
     deviceScaleFactor: 1,
   },
   webServer: {
-    command: "npm run iniciar",
+    command:
+      "MP_MOCK=1 MP_ACCESS_TOKEN=TEST-ofixio-e2e MP_PUBLIC_KEY=TEST-public MP_WEBHOOK_SECRET=ofixio-e2e-webhook OFIXIO_COMMISSION_PCT=0 npm run iniciar",
     url: "http://127.0.0.1:43123/api/health",
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 180_000,
   },
 });

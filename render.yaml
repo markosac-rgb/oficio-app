@@ -18,3 +18,17 @@ services:
         value: production
       - key: OFICIO_TRUST_ORIGIN
         value: "1"
+      - key: OFICIO_PUBLIC_URL
+        value: "https://oficio-app.onrender.com"
+      - key: OFIXIO_COMMISSION_PCT
+        value: "0"
+      - key: MP_ACCESS_TOKEN
+        sync: false
+      - key: MP_PUBLIC_KEY
+        sync: false
+      - key: MP_WEBHOOK_SECRET
+        sync: false
+      - key: MP_CLIENT_ID
+        sync: false
+      - key: MP_CLIENT_SECRET
+        sync: false

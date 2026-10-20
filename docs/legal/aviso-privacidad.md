@@ -2,7 +2,7 @@ Borrador — debe revisarlo un abogado antes de publicarse
 
 # Aviso de privacidad
 
-Versión del texto en la aplicación: 2026-10-20
+Versión del texto en la aplicación: 2026-10-20.2
 
 Fecha de última actualización: 20 de octubre de 2026
 
@@ -12,7 +12,7 @@ Este aviso se elaboró conforme a la Ley Federal de Protección de Datos Persona
 
 Responsable: Marcos Iván Amezquita Canizales (persona física), con domicilio en Circuito Berrugata 3303, Palmilla.
 
-Datos que se tratan: nombre, correo, teléfono, dirección y ubicación aproximada, perfil y oficio, reseñas, mensajes del chat, datos de identificación si se usa la verificación, y el registro del medio de pago que las partes acuerdan. Hoy la aplicación no procesa pagos con tarjeta. Si se recaba la imagen o el número de una identificación oficial, ese dato se identifica como sensible en el aviso integral.
+Datos que se tratan: nombre, correo, teléfono, dirección y ubicación aproximada, perfil y oficio, reseñas, mensajes del chat, datos de identificación si se usa la verificación, y el registro del pago (monto, estado e identificador de Mercado Pago). El número de tarjeta y la CLABE los captura Mercado Pago, no Ofixio. Si se recaba la imagen o el número de una identificación oficial, ese dato se identifica como sensible en el aviso integral.
 
 Finalidades primarias, necesarias para darte el servicio: crear y administrar tu cuenta, contactarte, mostrar la zona aproximada, operar la solicitud y el chat, y registrar el medio de pago acordado. Estas finalidades no piden una autorización aparte.
 
@@ -40,7 +40,7 @@ Según lo que uses en la aplicación, se pueden tratar estas categorías:
 - Reseñas que escribas o que otros usuarios escriban sobre un servicio en el que participaste.
 - Mensajes del chat de una solicitud.
 - Verificación de identidad, si se usa: tipo de documento y el nombre con el que lo describes. Hoy la pantalla no pide que subas la imagen de tu INE ni su número, y enviar ese dato no te marca como verificado: solo la administración puede hacerlo. Si más adelante el flujo pide la imagen o el número de una identificación oficial, esos datos se tratarán como se dice en la sección de datos sensibles.
-- Registro del pago: medio que las partes dicen haber acordado, monto, estado y, en la demostración, una referencia simulada. No se piden ni se guardan número de tarjeta, CLABE ni credenciales bancarias. La aplicación no procesa, retiene ni garantiza dinero.
+- Registro del pago: medio, monto, estado, identificador que devuelve Mercado Pago y, si el proveedor conectó su cuenta, el identificador de esa cuenta. No se piden ni se guardan número de tarjeta ni CLABE: los captura Mercado Pago. Ofixio no retiene el dinero ni ofrece un depósito en garantía. Si no hay token de Mercado Pago, el registro es simulado y se marca así.
 
 No pedimos origen étnico, estado de salud, creencias, afiliación sindical, opiniones políticas ni preferencia sexual.
 
@@ -50,7 +50,7 @@ En el uso ordinario no se tratan datos sensibles.
 
 La imagen de una identificación oficial y los datos que permitan reconocer rasgos biométricos sí se consideran datos que merecen el cuidado de datos sensibles. Solo se recabarían si se usa una verificación que los pida, y únicamente con tu consentimiento expreso en ese momento. Mientras esa función no pida el archivo ni el número, Ofixio no los tiene.
 
-El registro del medio de pago y del monto es un dato patrimonial. Se recaba con el consentimiento expreso de la casilla de aceptación, para la finalidad primaria de dejar constancia de lo que las partes acordaron. No es un cobro con tarjeta.
+El registro del medio de pago y del monto es un dato patrimonial. Se recaba con el consentimiento expreso de la casilla de aceptación, para la finalidad primaria de operar el pago acordado. El cobro con tarjeta, OXXO o SPEI, cuando está activo, lo procesa Mercado Pago.
 
 ### 4. Finalidades primarias
 
@@ -60,7 +60,7 @@ Son las necesarias para la relación con la plataforma. Se cubren al poner este 
 - Contactarte sobre tus solicitudes, cotizaciones, cambios de estado y aclaraciones.
 - Mostrar la zona aproximada y, ya confirmado el servicio, la dirección necesaria para realizarlo.
 - Operar cotizaciones, agenda, chat, reseñas y reportes de ayuda.
-- Registrar el medio de pago acordado entre cliente y proveedor, sin procesar el dinero.
+- Registrar y, cuando Mercado Pago está configurado, iniciar el pago acordado entre cliente y proveedor. El dinero lo mueve Mercado Pago. Ofixio no lo retiene en depósito.
 - Atender seguridad de la cuenta, suspensiones y obligaciones legales.
 
 Si no quieres que tratemos los datos indispensables para estas finalidades, no es posible mantener la cuenta.
@@ -115,12 +115,13 @@ La aplicación usa cookies de sesión, no cookies de publicidad ni de rastreo de
 
 - `oficio_session`: cookie httpOnly, SameSite Lax, con marca Secure cuando el sitio se sirve por HTTPS. Dura unos 30 días y sirve para mantener tu sesión.
 - `oficio_oauth`: cookie de estado, misma protección, de unos 10 minutos, solo mientras intentas entrar con Google.
+- `oficio_mp_oauth`: cookie de estado, misma protección, de unos 10 minutos, solo mientras un proveedor conecta su cuenta de Mercado Pago.
 
 En el almacenamiento local del navegador se guardan, en ese dispositivo, la preferencia de tema claro u oscuro y los perfiles que viste hace poco. Eso no se envía como cookie de publicidad. Puedes borrarlo desde la configuración del navegador; si borras la cookie de sesión, tendrás que entrar de nuevo.
 
 ### 10. Cambios a este aviso
 
-Los cambios se publican en esta página y en la aplicación, con una nueva versión del texto. Cuando el responsable tenga operando el correo de contacto, también podrá avisarte por ese medio. La fecha oficial de la última actualización es **20 de octubre de 2026**. La versión que hoy muestra la aplicación es 2026-10-20.
+Los cambios se publican en esta página y en la aplicación, con una nueva versión del texto. Cuando el responsable tenga operando el correo de contacto, también podrá avisarte por ese medio. La fecha oficial de la última actualización es **20 de octubre de 2026**. La versión que hoy muestra la aplicación es 2026-10-20.2.
 
 ### 11. Consentimiento
 

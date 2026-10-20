@@ -88,6 +88,11 @@ model ProviderProfile {
   certStatus         String  @default("none")
   referencesStatus   String  @default("none")
   referencesNote     String  @default("")
+  mpUserId           String  @default("")
+  mpAccessToken      String  @default("")
+  mpRefreshToken     String  @default("")
+  mpPublicKey        String  @default("")
+  mpTokenExpiresAt   DateTime?
   isExample          Boolean @default(false)
   cancellationPolicy String  @default("")
   responseMinutes    Int     @default(40)
@@ -232,10 +237,29 @@ model Payment {
   status        String
   simulated     Boolean        @default(true)
   adapter       String
-  reference     String
-  note          String
-  policyVersion String         @default("2026-10")
-  createdAt     DateTime       @default(now())
+  reference         String
+  note              String
+  policyVersion     String         @default("2026-10")
+  externalPaymentId String?        @unique
+  preferenceId      String         @default("")
+  payee             String         @default("none")
+  methodDetail      String         @default("")
+  ticketUrl         String         @default("")
+  liveMode          Boolean        @default(false)
+  createdAt         DateTime       @default(now())
+  events            PaymentEvent[]
+}
+
+model PaymentEvent {
+  id        String   @id
+  paymentId String
+  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  status    String
+  detail    String   @default("")
+  createdAt DateTime @default(now())
+
+  @@unique([paymentId, status])
+  @@index([paymentId])
 }
 
 model Review {

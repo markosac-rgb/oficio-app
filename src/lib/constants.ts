@@ -1,6 +1,7 @@
-export const PLATFORM_FEE_RATE = 0.1;
+import { commissionOf } from "@/lib/commission";
+
 export const POLICY_VERSION = "2026-10";
-export const LEGAL_VERSION = "2026-10-20";
+export const LEGAL_VERSION = "2026-10-20.2";
 export const APP_NAME = "Ofixio";
 
 export const CATEGORIES = [
@@ -96,39 +97,39 @@ export const PAYMENT_METHODS: {
     name: "Tarjeta",
     summary: "Débito o crédito",
     protection:
-      "En esta demo no se hace ningún cargo a una tarjeta. En producción aquí se conectaría Conekta, Stripe México, Mercado Pago u OpenPay. Ofixio no retiene el dinero y no hay depósito en garantía. Sí queda un recibo de lo que elegiste y puedes abrir una aclaración.",
-    external: "Conekta, Stripe México, Mercado Pago u OpenPay",
+      "Simulado / Demo: no se hace ningún cargo a una tarjeta. Con MP_ACCESS_TOKEN el cobro real es Checkout Pro de Mercado Pago. Ofixio no retiene el dinero y no hay depósito en garantía.",
+    external: "Mercado Pago Checkout Pro",
   },
   {
     id: "OXXO",
     name: "OXXO",
     summary: "Pago en tienda",
     protection:
-      "Simulado / Demo: no generamos una ficha de OXXO ni un código de barras real. En producción, Conekta, OpenPay o Mercado Pago crearían la ficha para pagar en tienda. Aquí solo anotamos que elegiste OXXO. No hay cobro ni custodia de fondos.",
-    external: "Conekta, OpenPay o Mercado Pago (ficha OXXO)",
+      "Simulado / Demo: no generamos una ficha de OXXO. Con Mercado Pago configurado, la ficha la crea Checkout Pro y el pago queda pendiente hasta que se pague en tienda. Ofixio no custodia ese dinero.",
+    external: "Mercado Pago Checkout Pro (OXXO)",
   },
   {
     id: "SPEI",
     name: "SPEI",
     summary: "Transferencia",
     protection:
-      "Simulado / Demo: no hay CLABE ni referencia bancaria real. No transfieras dinero a nadie por este concepto dentro de la app. En producción, la pasarela generaría la referencia SPEI. Ofixio no custodia ese dinero.",
-    external: "Conekta, OpenPay, Stripe México o Mercado Pago (SPEI)",
+      "Simulado / Demo: no hay CLABE real. No transfieras dinero por este concepto. Con Mercado Pago configurado, la referencia SPEI la genera Checkout Pro y el pago queda pendiente hasta que llegue. Ofixio no custodia ese dinero.",
+    external: "Mercado Pago Checkout Pro (SPEI)",
   },
   {
     id: "MP",
     name: "Mercado Pago",
     summary: "Saldo o tarjeta en Mercado Pago",
     protection:
-      "Simulado / Demo: no abrimos el checkout de Mercado Pago ni se mueve saldo. Falta conectar su API. No hay cobro ni dinero retenido por Ofixio.",
-    external: "Mercado Pago Checkout",
+      "Simulado / Demo: no abrimos el checkout de Mercado Pago ni se mueve saldo. Si el servidor tiene MP_ACCESS_TOKEN, esta opción abre Checkout Pro de verdad. Ofixio no retiene el dinero.",
+    external: "Mercado Pago Checkout Pro",
   },
   {
     id: "CASH",
     name: "Efectivo",
     summary: "Se lo pagas al proveedor",
     protection:
-      "Pagas directo al proveedor, en efectivo, como acuerden. Ofixio no toca ese dinero, no lo retiene y no puede devolverlo. La comisión de la plataforma no se cobra en esta demo. Si algo sale mal, abre una aclaración: una persona la revisa con los dos. No hay reembolso automático.",
+      "Pagas directo al proveedor, en efectivo, como acuerden. Ofixio no toca ese dinero, no lo retiene y no puede devolverlo. Si algo sale mal, abre una aclaración: una persona la revisa con los dos. No hay reembolso automático.",
     external: "Ninguno: el efectivo no pasa por Ofixio",
   },
 ];
@@ -139,6 +140,7 @@ export const CANCELLATION_RULES = [
   "Si el proveedor ya va en camino o el trabajo empezó, la cancelación abre una aclaración para que administración la revise.",
   "En efectivo, el dinero se lo das al proveedor. Ofixio no lo guarda y no lo regresa.",
   "No hay depósito en garantía ni custodia de fondos. Una aclaración es una revisión entre las dos personas, no un reembolso automático.",
+  "Si el pago se hizo en Mercado Pago, la devolución y la disputa se atienden en Mercado Pago. Ofixio no procesa ese reembolso.",
 ];
 
 export const TRUST_LINES = [
@@ -167,8 +169,8 @@ export const INTEGRATIONS = [
   {
     id: "pagos",
     name: "Pagos",
-    needed: "Conekta, Stripe México, Mercado Pago u OpenPay",
-    now: "Se registra el método y el desglose. No hay cobro, ficha de OXXO, CLABE ni checkout.",
+    needed: "MP_ACCESS_TOKEN de Mercado Pago México. Opcional: MP_WEBHOOK_SECRET y, para la comisión partida, MP_CLIENT_ID y MP_CLIENT_SECRET.",
+    now: "Con token, Checkout Pro cobra tarjeta, OXXO o SPEI. Sin token, se registra la elección y la pantalla dice simulado. No hay depósito en garantía.",
   },
   {
     id: "mapas",
@@ -217,14 +219,18 @@ export const POSTAL_DIRECTORY = [
   { cp: "64000", neighborhood: "Centro", city: "Monterrey", state: "Nuevo León", lat: 25.6714, lng: -100.309 },
 ] as const;
 
+export const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  checkout: "Checkout abierto",
+  pending: "Pago pendiente",
+  approved: "Pago aprobado",
+  rejected: "Pago rechazado",
+  refunded: "Pago reembolsado",
+  registrado_simulado: "Registro simulado",
+};
+
 export function breakdown(serviceMxn: number) {
-  const feeMxn = Math.round(serviceMxn * PLATFORM_FEE_RATE);
-  return {
-    serviceMxn,
-    feeMxn,
-    totalMxn: serviceMxn + feeMxn,
-    rate: PLATFORM_FEE_RATE,
-  };
+  const money = commissionOf(serviceMxn);
+  return { ...money, rate: money.pct / 100 };
 }
 
 export function normalizeText(value: string) {

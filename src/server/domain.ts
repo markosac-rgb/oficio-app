@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { listDemoCodes, lookupPostalCode as geocodePostalCode, searchPlaces as geocodePlaces } from "@/adapters/geocoding";
 import { demoIdentityAdapter } from "@/adapters/identity";
 import { demoPaymentAdapter } from "@/adapters/payments";
+import { commissionOf, commissionPct } from "@/lib/commission";
 import {
   ADVANCE_LABEL,
   CANCELLATION_RULES,
@@ -12,17 +13,17 @@ import {
   INTEGRATIONS,
   NEXT_STATUS,
   PAYMENT_METHODS,
-  PLATFORM_FEE_RATE,
+  PAYMENT_STATUS_LABEL,
   POLICY_VERSION,
   PROBLEM_HINTS,
   STATUS_LABEL,
-  breakdown,
   normalizeText,
   type PaymentMethodId,
 } from "@/lib/constants";
 import { displayName } from "@/lib/format";
 import { distanceKm, fuzzyCoord } from "@/lib/geo";
 import { prisma } from "@/lib/prisma";
+import { mpConfigured, mpOAuthConfigured, mpTestMode, startMercadoPagoCheckout, syncMercadoPagoPayment } from "@/server/payments";
 import { demoDataEnabled, setDemoDataEnabled } from "@/server/settings";
 import { statusHeadline } from "@/lib/status";
 import type {
@@ -53,7 +54,7 @@ type ProviderBundle = Prisma.ProviderProfileGetPayload<{ include: typeof provide
 const requestBundle = {
   category: true,
   client: true,
-  payment: true,
+  payment: { include: { events: { orderBy: { createdAt: "asc" as const } } } },
   review: true,
   reports: true,
   quotes: {
@@ -234,7 +235,7 @@ export async function searchProviders(user: AppUser | null, filters: {
   return {
     providers: cards,
     locationKnown: Boolean(origin),
-    feeRate: PLATFORM_FEE_RATE,
+    feeRate: commissionPct() / 100,
   };
 }
 
@@ -549,6 +550,47 @@ export async function listRequests(user: AppUser) {
   return requests.filter((request) => canAccess(user, request, provider)).map((request) => toSummary(request, user));
 }
 
+function toPaymentView(payment: NonNullable<RequestBundle["payment"]>) {
+  return {
+    method: payment.method,
+    serviceMxn: payment.serviceMxn,
+    feeMxn: payment.feeMxn,
+    totalMxn: payment.totalMxn,
+    status: payment.status,
+    statusLabel: PAYMENT_STATUS_LABEL[payment.status] ?? payment.status,
+    simulated: payment.simulated,
+    adapter: payment.adapter,
+    reference: payment.reference,
+    note: payment.note,
+    payee: payment.payee,
+    externalPaymentId: payment.externalPaymentId ?? "",
+    ticketUrl: payment.ticketUrl,
+    createdAt: payment.createdAt.toISOString(),
+    events: payment.events.map((event) => ({
+      status: event.status,
+      label: PAYMENT_STATUS_LABEL[event.status] ?? event.status,
+      detail: event.detail,
+      createdAt: event.createdAt.toISOString(),
+    })),
+  };
+}
+
+function checkoutOffer(request: RequestBundle) {
+  const selected = selectedQuote(request);
+  const money = selected ? commissionOf(selected.amountMxn) : null;
+  const providerConnected = Boolean(selected?.provider.mpAccessToken);
+  return {
+    live: mpConfigured(),
+    testMode: mpTestMode(),
+    commissionPct: commissionPct(),
+    serviceMxn: money?.serviceMxn ?? null,
+    feeMxn: money?.feeMxn ?? null,
+    totalMxn: money?.totalMxn ?? null,
+    payee: providerConnected ? ("provider" as const) : ("platform" as const),
+    providerConnected,
+  };
+}
+
 export async function getRequest(user: AppUser, id: string): Promise<RequestDetail> {
   const request = await prisma.serviceRequest.findUnique({ where: { id }, include: requestBundle });
   if (!request) throw new HttpError(404, "No encontramos esa solicitud.");
@@ -645,20 +687,8 @@ export async function getRequest(user: AppUser, id: string): Promise<RequestDeta
           status: mine.status,
         }
       : null,
-    payment: request.payment
-      ? {
-          method: request.payment.method,
-          serviceMxn: request.payment.serviceMxn,
-          feeMxn: request.payment.feeMxn,
-          totalMxn: request.payment.totalMxn,
-          status: request.payment.status,
-          simulated: request.payment.simulated,
-          adapter: request.payment.adapter,
-          reference: request.payment.reference,
-          note: request.payment.note,
-          createdAt: request.payment.createdAt.toISOString(),
-        }
-      : null,
+    payment: request.payment ? toPaymentView(request.payment) : null,
+    checkout: checkoutOffer(request),
     review: request.review
       ? {
           rating: request.review.rating,
@@ -670,7 +700,12 @@ export async function getRequest(user: AppUser, id: string): Promise<RequestDeta
       canQuote,
       canAccept: clientView && !selected && ["REQUESTED", "QUOTED"].includes(request.status) && quotes.some((quote) => quote.status === "PENDING"),
       canSchedule: clientView && Boolean(selected) && !request.payment && request.status === "QUOTED",
-      canPay: clientView && Boolean(selected) && Boolean(request.scheduledAt) && !request.payment && request.status === "QUOTED",
+      canPay:
+        clientView &&
+        Boolean(selected) &&
+        Boolean(request.scheduledAt) &&
+        request.status === "QUOTED" &&
+        (!request.payment || ["rejected", "checkout"].includes(request.payment.status)),
       canAdvance: isSelectedProvider && Boolean(NEXT_STATUS[request.status]),
       nextStatus: isSelectedProvider ? NEXT_STATUS[request.status] ?? null : null,
       canCancel: !["COMPLETED", "CANCELLED"].includes(request.status) && (clientView || isSelectedProvider || targeted || user.role === "ADMIN"),
@@ -800,7 +835,7 @@ export async function scheduleRequest(user: AppUser, requestId: string, input: R
   return { ok: true, scheduledAt: scheduledAt.toISOString() };
 }
 
-export async function recordPayment(user: AppUser, requestId: string, input: Record<string, unknown>) {
+export async function recordPayment(user: AppUser, requestId: string, input: Record<string, unknown>, origin: string) {
   const { request } = await requireRequest(user, requestId);
   const detail = await getRequest(user, requestId);
   if (!detail.permissions.canPay) {
@@ -809,35 +844,78 @@ export async function recordPayment(user: AppUser, requestId: string, input: Rec
   if (input.acceptedPolicy !== true) {
     throw new HttpError(400, "Lee y acepta las reglas de cancelación y aclaraciones.");
   }
-  const method = asText(input.method) as PaymentMethodId;
-  const methodInfo = PAYMENT_METHODS.find((item) => item.id === method);
-  if (!methodInfo) throw new HttpError(400, "Elige un método de pago.");
+  const method = asText(input.method) as PaymentMethodId | "MERCADOPAGO";
   const selected = selectedQuote(request);
   if (!selected) throw new HttpError(400, "Falta una cotización aceptada.");
-  const money = breakdown(selected.amountMxn);
+  if (mpConfigured() && method === "MERCADOPAGO") {
+    return startMercadoPagoCheckout({
+      requestId,
+      clientId: request.clientId,
+      clientEmail: request.client.email ?? "",
+      providerId: selected.providerId,
+      providerUserId: selected.provider.userId,
+      title: request.title,
+      serviceMxn: selected.amountMxn,
+      origin,
+    });
+  }
+  if (mpConfigured() && method !== "CASH") {
+    throw new HttpError(400, "Con Mercado Pago activo, paga en Mercado Pago o elige efectivo.");
+  }
+  const methodInfo = PAYMENT_METHODS.find((item) => item.id === method);
+  if (!methodInfo) throw new HttpError(400, "Elige un método de pago.");
+  const money = commissionOf(selected.amountMxn);
   const recorded = await demoPaymentAdapter.record({
     requestId,
-    method,
+    method: methodInfo.id,
     serviceMxn: money.serviceMxn,
     feeMxn: money.feeMxn,
     totalMxn: money.totalMxn,
   });
-  await prisma.payment.create({
-    data: {
-      id: randomUUID(),
-      requestId,
-      method,
-      serviceMxn: money.serviceMxn,
-      feeMxn: money.feeMxn,
-      totalMxn: money.totalMxn,
-      status: recorded.status,
-      simulated: true,
-      adapter: recorded.adapter,
-      reference: recorded.reference,
-      note: `${recorded.note} ${methodInfo.protection}`,
-      policyVersion: POLICY_VERSION,
-    },
-  });
+  const note = `${recorded.note} ${methodInfo.protection}`;
+  const existing = await prisma.payment.findUnique({ where: { requestId } });
+  if (existing && !["rejected", "checkout"].includes(existing.status)) {
+    throw new HttpError(400, "Este servicio ya tiene un método registrado.");
+  }
+  if (existing) {
+    await prisma.payment.update({
+      where: { id: existing.id },
+      data: {
+        method: methodInfo.id,
+        serviceMxn: money.serviceMxn,
+        feeMxn: money.feeMxn,
+        totalMxn: money.totalMxn,
+        status: recorded.status,
+        simulated: true,
+        adapter: recorded.adapter,
+        reference: recorded.reference,
+        note,
+        payee: "none",
+        externalPaymentId: null,
+      },
+    });
+  } else {
+    const created = await prisma.payment.create({
+      data: {
+        id: randomUUID(),
+        requestId,
+        method: methodInfo.id,
+        serviceMxn: money.serviceMxn,
+        feeMxn: money.feeMxn,
+        totalMxn: money.totalMxn,
+        status: recorded.status,
+        simulated: true,
+        adapter: recorded.adapter,
+        reference: recorded.reference,
+        note,
+        policyVersion: POLICY_VERSION,
+        payee: "none",
+      },
+    });
+    await prisma.paymentEvent.create({
+      data: { id: randomUUID(), paymentId: created.id, status: recorded.status, detail: "Registro simulado. No hubo cobro." },
+    });
+  }
   await prisma.serviceRequest.update({ where: { id: requestId }, data: { status: "CONFIRMED" } });
   await notify(
     selected.provider.userId,
@@ -847,6 +925,17 @@ export async function recordPayment(user: AppUser, requestId: string, input: Rec
   );
   await notify(request.clientId, "Quedó confirmado", "Guardamos tu método y el desglose. Revisa el recibo en la solicitud.", `/solicitudes/${requestId}/pago`);
   return { ok: true, simulated: true, reference: recorded.reference };
+}
+
+export async function syncPaymentReturn(user: AppUser, requestId: string, input: Record<string, unknown>) {
+  await requireRequest(user, requestId);
+  const paymentId = asText(input.paymentId);
+  if (!paymentId || paymentId.length > 40) throw new HttpError(400, "Falta el identificador del pago.");
+  const result = await syncMercadoPagoPayment(paymentId);
+  if (result.requestId && result.requestId !== requestId) {
+    throw new HttpError(400, "Ese pago no corresponde a esta solicitud.");
+  }
+  return result;
 }
 
 export async function advanceStatus(user: AppUser, requestId: string) {
@@ -1201,6 +1290,21 @@ export async function providerDashboard(user: AppUser) {
     })),
     trustNote:
       "Identidad verificada, certificaciones revisadas y referencias revisadas solo aparecen si una persona administradora las marcó. Enviar un documento no las enciende.",
+    mercadopago: await providerMercadoPago(user.providerProfile.id),
+  };
+}
+
+async function providerMercadoPago(providerId: string) {
+  const provider = await prisma.providerProfile.findUnique({
+    where: { id: providerId },
+    select: { mpUserId: true, mpAccessToken: true },
+  });
+  return {
+    oauthAvailable: mpOAuthConfigured(),
+    connected: Boolean(provider?.mpAccessToken),
+    accountId: provider?.mpUserId ?? "",
+    live: mpConfigured(),
+    testMode: mpTestMode(),
   };
 }
 
@@ -1373,6 +1477,35 @@ export async function addDocument(user: AppUser, input: Record<string, unknown>)
 
 function assertAdmin(user: AppUser) {
   if (user.role !== "ADMIN") throw new HttpError(403, "Esta sección es solo para administración.");
+}
+
+export async function adminPayments(user: AppUser) {
+  assertAdmin(user);
+  const rows = await prisma.payment.findMany({
+    include: { request: { select: { title: true, status: true } }, events: { orderBy: { createdAt: "asc" } } },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
+  return {
+    payments: rows.map((row) => ({
+      id: row.id,
+      requestId: row.requestId,
+      title: row.request.title,
+      requestStatus: row.request.status,
+      method: row.method,
+      status: row.status,
+      statusLabel: PAYMENT_STATUS_LABEL[row.status] ?? row.status,
+      serviceMxn: row.serviceMxn,
+      feeMxn: row.feeMxn,
+      totalMxn: row.totalMxn,
+      payee: row.payee,
+      simulated: row.simulated,
+      adapter: row.adapter,
+      externalPaymentId: row.externalPaymentId ?? "",
+      reference: row.reference,
+      createdAt: row.createdAt.toISOString(),
+    })),
+  };
 }
 
 export async function adminSummary(user: AppUser) {
@@ -1658,7 +1791,7 @@ export function helpContent() {
   return {
     rules: CANCELLATION_RULES,
     integrations: INTEGRATIONS,
-    feeRate: PLATFORM_FEE_RATE,
+    feeRate: commissionPct() / 100,
     methods: PAYMENT_METHODS,
   };
 }

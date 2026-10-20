@@ -16,6 +16,7 @@ import {
   addReview,
   addWorkPhoto,
   adminDemoSettings,
+  adminPayments,
   adminReports,
   adminSetChecks,
   adminSetDemoData,
@@ -45,6 +46,7 @@ import {
   postMessage,
   providerDashboard,
   recordPayment,
+  syncPaymentReturn,
   saveSchedule,
   saveService,
   scheduleRequest,
@@ -55,7 +57,8 @@ import {
   updateClientLocation,
   updateProviderProfile,
 } from "@/server/domain";
-import { beginGoogleOAuth, finishGoogleOAuth, googleOAuthConfigured } from "@/server/google-oauth";
+import { beginGoogleOAuth, finishGoogleOAuth, googleOAuthConfigured, publicOrigin } from "@/server/google-oauth";
+import { beginMercadoPagoConnect, finishMercadoPagoConnect } from "@/server/mp-oauth";
 import { HttpError } from "@/server/errors";
 import { prisma } from "@/lib/prisma";
 
@@ -144,13 +147,16 @@ async function dispatch(method: string, request: NextRequest, slug: string[]) {
     const [, id, action] = actionMatch;
     if (method === "POST" && action === "cancel") return cancelRequest(user, id, await readJson(request));
     if (method === "POST" && action === "schedule") return scheduleRequest(user, id, await readJson(request));
-    if (method === "POST" && action === "payment") return recordPayment(user, id, await readJson(request));
+    if (method === "POST" && action === "payment") return recordPayment(user, id, await readJson(request), publicOrigin(request));
     if (method === "POST" && action === "status") return advanceStatus(user, id);
     if (method === "POST" && action === "review") return addReview(user, id, await readJson(request));
     if (method === "GET" && action === "messages") return listMessages(user, id);
     if (method === "POST" && action === "messages") return postMessage(user, id, await readJson(request));
     if (method === "POST" && action === "quotes") return sendQuote(user, id, await readJson(request));
   }
+
+  const paymentSync = path.match(/^requests\/([^/]+)\/payment\/sync$/);
+  if (method === "POST" && paymentSync) return syncPaymentReturn(user, paymentSync[1], await readJson(request));
 
   const quoteMatch = path.match(/^quotes\/([^/]+)\/(accept|reject)$/);
   if (method === "POST" && quoteMatch) {
@@ -175,6 +181,7 @@ async function dispatch(method: string, request: NextRequest, slug: string[]) {
   if (serviceMatch && method === "DELETE") return deleteService(user, serviceMatch[1]);
 
   if (method === "GET" && path === "admin/summary") return adminSummary(user);
+  if (method === "GET" && path === "admin/payments") return adminPayments(user);
   if (method === "GET" && path === "admin/settings") return adminDemoSettings(user);
   if (method === "POST" && path === "admin/settings") {
     const body = await readJson(request);
@@ -218,6 +225,8 @@ export async function GET(request: NextRequest, context: ApiContext) {
   const path = (slug ?? []).join("/");
   if (path === "auth/google/start") return beginGoogleOAuth(request);
   if (path === "auth/google/callback") return finishGoogleOAuth(request);
+  if (path === "provider/mercadopago/connect") return beginMercadoPagoConnect(request);
+  if (path === "provider/mercadopago/callback") return finishMercadoPagoConnect(request);
   return handle("GET", request, context);
 }
 

@@ -40,7 +40,7 @@ Los datos se guardan en PostgreSQL. La sesión es una cookie httpOnly.
 - Cotizar. El cliente acepta o rechaza antes de confirmar.
 - Elegir fecha y hora, o “lo antes posible”.
 - Chat dentro de la app, también con fotos.
-- Registrar el método de pago y el desglose (costo y comisión del 10%). No se cobra dinero.
+- Pagar el precio acordado con Mercado Pago (tarjeta, OXXO o SPEI) cuando hay `MP_ACCESS_TOKEN`. Sin token, se registra el método y la pantalla dice que es simulado. La comisión sale de `OFIXIO_COMMISSION_PCT` (0 si no se define) y no se suma al precio.
 - Seguir el trabajo: solicitado, cotizado, confirmado, en camino, en proceso, completado o cancelado.
 - Calificar al terminar.
 - Favoritos, volver a pedir, ayuda, cancelación y reportes.
@@ -54,14 +54,14 @@ Cada pieza externa está detrás de un adaptador en `src/adapters/`. En pantalla
 
 | Pieza | Qué hace hoy | Qué hace falta conectar |
 | --- | --- | --- |
-| Pagos | Guarda el método y un recibo con la referencia `DEMO-NO-COBRAR`. No hay cobro, ficha de OXXO ni CLABE. | Conekta, Stripe México, Mercado Pago u OpenPay |
+| Pagos | Con `MP_ACCESS_TOKEN`, Checkout Pro de Mercado Pago. Sin token, guarda el método y un recibo `DEMO-NO-COBRAR` marcado como simulado. Un token `TEST-` avisa que no se cobra dinero real. | Mercado Pago México. La comisión partida pide que el proveedor conecte su cuenta (`MP_CLIENT_ID` y `MP_CLIENT_SECRET`). |
 | Mapas y códigos postales | Directorio local de algunos códigos y un mapa ilustrado para mover el punto. | Google Maps o Mapbox |
 | Código por SMS o correo | El código se muestra en la misma pantalla. No se envía. | Twilio, MessageBird u otro SMS en México, más correo transaccional |
 | Google | Entra a una cuenta de demostración fija. No abre Google. | OAuth de Google Cloud |
 | Identidad | El documento queda pendiente hasta que administración lo marque. Nadie queda “verificado” solo. | Un proveedor que revise INE u otra identificación |
 | Avisos push | Solo avisos dentro de la app. | FCM o APNs cuando exista la app nativa |
 
-Ofixio **no** retiene el dinero del cliente ni ofrece un depósito en garantía. La comisión se muestra antes de confirmar, pero no se cobra. Efectivo se acuerda entre las dos personas, sin protección de la plataforma.
+Ofixio **no** retiene el dinero del cliente ni ofrece un depósito en garantía. Si el proveedor no conectó Mercado Pago, el pago entra a la cuenta de Ofixio y Ofixio le paga al proveedor. Si lo conectó, el pago entra a su cuenta y Mercado Pago descuenta la comisión. Las devoluciones y las disputas de ese pago se atienden en Mercado Pago. El efectivo se acuerda entre las dos personas y no pasa por la plataforma.
 
 ## Prueba del flujo
 
@@ -114,9 +114,15 @@ Variables en Render:
 | `NODE_ENV` | `production` |
 | `OFICIO_TRUST_ORIGIN` | `1` |
 | `OFICIO_DEMO_DATA` | `1` por defecto. Con `0`, el arranque oculta los perfiles de ejemplo hasta que un admin los vuelva a mostrar |
-| `OFICIO_PUBLIC_URL` | `https://oficio-app.onrender.com` (hace falta si activas Google) |
+| `OFICIO_PUBLIC_URL` | `https://oficio-app.onrender.com` (hace falta para Google y para las URLs de Mercado Pago) |
 | `GOOGLE_CLIENT_ID` | opcional |
 | `GOOGLE_CLIENT_SECRET` | opcional |
+| `MP_ACCESS_TOKEN` | Token de Mercado Pago México. Sin él, el pago queda simulado. Si empieza con `TEST-`, la pantalla avisa que no se cobra dinero real. |
+| `MP_PUBLIC_KEY` | opcional |
+| `MP_WEBHOOK_SECRET` | opcional. Si está, el webhook exige la firma `x-signature`. |
+| `MP_CLIENT_ID` | opcional. Junto con el secreto, enciende «Conectar Mercado Pago» para el proveedor. |
+| `MP_CLIENT_SECRET` | opcional |
+| `OFIXIO_COMMISSION_PCT` | Porcentaje de comisión. `0` por defecto. `10` es 10% del precio acordado, no un cargo extra. Solo se manda como `marketplace_fee` si el proveedor conectó su cuenta. |
 
 Un administrador puede ocultar los perfiles de ejemplo en Administración. Mientras se muestran, la franja de cifras y las tarjetas dicen «Datos de ejemplo». Los números salen de la base: una cuenta real los aumenta. Si los ejemplos se ocultan, la franja cuenta solo personas reales.
 
@@ -151,7 +157,21 @@ Los datos del responsable están en `src/lib/legal-party.ts`. Las páginas y el 
 - Correo de privacidad: xionplanta@gmail.com
 - Última actualización: 20 de octubre de 2026
 
-La versión que guarda la aplicación al crear una cuenta es `2026-10-20`.
+La versión que guarda la aplicación al crear una cuenta es `2026-10-20.2`.
+
+### Mercado Pago
+
+Webhook para registrar en el panel de Mercado Pago, en modo producción o de prueba según el token:
+
+`https://oficio-app.onrender.com/api/payments/mercadopago/webhook`
+
+Evento: pagos (`payment`).
+
+URL de retorno de OAuth, si el proveedor conecta su cuenta:
+
+`https://oficio-app.onrender.com/api/provider/mercadopago/callback`
+
+Las `back_urls` del checkout vuelven a `https://oficio-app.onrender.com/solicitudes/{id}/pago`. El estado del pago se confirma consultando la API de Mercado Pago; no se cree al parámetro `status` de la URL.
 
 ## App nativa más adelante
 
