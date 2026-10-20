@@ -22,8 +22,9 @@ test("cliente pide, proveedor cotiza, confirman, registran pago, terminan y rese
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Alguien de confianza/ })).toBeVisible();
-  await expect(page.getByText("Lo arreglamos por ti")).toBeVisible();
-  await expect(page.getByTestId("wordmark").first()).toContainText("Ofixio");
+  const logo = page.getByTestId("wordmark").getByRole("img", { name: /Ofixio/ });
+  await expect(logo).toBeVisible();
+  await expect(logo).toHaveAttribute("alt", /Lo arreglamos por ti/);
   await expect(page.getByTestId("link-terminos")).toBeVisible();
   await expect(page.getByTestId("link-privacidad")).toBeVisible();
   await shot(page, "01-bienvenida");

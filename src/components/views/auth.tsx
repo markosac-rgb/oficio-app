@@ -24,9 +24,8 @@ export function WelcomeScreen() {
   const { user } = useSession();
   return (
     <main id="contenido" className="mx-auto flex min-h-dvh w-full max-w-lg flex-col bg-gradient-to-b from-[#083d34] via-[#0e6b56] to-paper px-5 py-8">
-      <Wordmark tone="onDark" className="text-3xl text-white" />
-      <p className="mt-10 text-sm font-extrabold tracking-[0.16em] text-[#f6b73c] uppercase">Lo arreglamos por ti</p>
-      <h1 className="mt-2 text-4xl leading-tight font-extrabold text-white">Alguien de confianza para el trabajo de hoy.</h1>
+      <Wordmark tone="onDark" className="h-auto w-full max-w-80" />
+      <h1 className="mt-8 text-4xl leading-tight font-extrabold text-white">Alguien de confianza para el trabajo de hoy.</h1>
       <p className="mt-4 text-lg leading-7 text-white/85">
         Pide un plomero, electricista, pintor o quien haga falta. Comparas, acuerdas el precio y sigues el trabajo desde el celular.
       </p>

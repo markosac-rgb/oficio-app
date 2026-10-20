@@ -11,7 +11,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-clay text-white hover:bg-clay-dark",
+        default: "bg-lime text-lime-ink hover:bg-lime-dark",
         secondary: "border border-line bg-sand text-ink hover:bg-paper",
         ghost: "text-ink hover:bg-white",
         leaf: "bg-leaf text-white hover:bg-leaf-dark",
