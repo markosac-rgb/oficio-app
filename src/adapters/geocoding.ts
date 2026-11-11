@@ -211,6 +211,44 @@ export async function lookupPostalCode(cp: string): Promise<GeoResponse> {
   };
 }
 
+export async function reversePlace(lat: number, lng: number): Promise<GeoResponse> {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return { simulated: false, source: "nominatim", note: "La ubicación no es válida.", places: [] };
+  }
+  if (!inMexico(lat, lng)) {
+    return { simulated: false, source: "nominatim", note: "Esa ubicación está fuera de México.", places: [] };
+  }
+  const params = new URLSearchParams({
+    format: "jsonv2",
+    addressdetails: "1",
+    lat: String(lat),
+    lon: String(lng),
+  });
+  const key = `reverse:${params.toString()}`;
+  const stored = cached(key);
+  if (stored) {
+    return { simulated: false, source: "nominatim", note: "Lugar encontrado con OpenStreetMap Nominatim.", places: stored };
+  }
+  try {
+    const place = await schedule(async () => {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params}`, {
+        headers: { Accept: "application/json", "Accept-Language": "es-MX,es", "User-Agent": USER_AGENT },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!response.ok) return null;
+      const data = (await response.json()) as NominatimItem;
+      return toPlace(data);
+    });
+    if (place) {
+      remember(key, [place]);
+      return { simulated: false, source: "nominatim", note: "Lugar encontrado con OpenStreetMap Nominatim.", places: [place] };
+    }
+  } catch {
+    return { simulated: true, source: "directorio-ejemplo", note: FALLBACK_NOTE, places: [] };
+  }
+  return { simulated: false, source: "nominatim", note: "No encontramos esa ubicación en México.", places: [] };
+}
+
 export async function searchPlaces(query: string): Promise<GeoResponse> {
   const q = query.trim().slice(0, 120);
   if (q.length < 3) {

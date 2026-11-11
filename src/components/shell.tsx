@@ -7,6 +7,7 @@ import { Bell, CalendarDays, CircleHelp, House, MessageCircle, Search, UserRound
 import { LegalFooter } from "@/components/legal-footer";
 import { Wordmark } from "@/components/wordmark";
 import { api } from "@/lib/api";
+import { registerDevicePush } from "@/lib/native";
 import type { Account } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -61,6 +62,12 @@ export function Shell({ user, children }: { user: Account; children: React.React
       window.clearInterval(timer);
     };
   }, [pathname]);
+
+  useEffect(() => {
+    void registerDevicePush((token, platform) => {
+      void api("/api/devices/push", { method: "POST", body: JSON.stringify({ token, platform }) }).catch(() => undefined);
+    });
+  }, []);
 
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);

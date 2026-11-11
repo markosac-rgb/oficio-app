@@ -23,6 +23,7 @@ import { HomeHero, StatsStrip } from "@/components/home-hero";
 import { recentProviderIds, rememberProvider } from "@/components/recent";
 import { firstName, formatWhen, mxn, stars } from "@/lib/format";
 import { formatDistance, fuzzyCoord } from "@/lib/geo";
+import { currentPosition, shareLink } from "@/lib/native";
 import { fileToJpegDataUrl } from "@/lib/images";
 import type { Account, Achievement, CategoryCount, MarketplaceStats, ProviderCard, ProviderProfile, RequestSummary } from "@/lib/types";
 import { ProviderCardView } from "@/components/provider-card";
@@ -321,11 +322,17 @@ export function BuscarView() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [near, setNear] = useState<{ lat: number; lng: number } | null>(null);
+  const [nearNote, setNearNote] = useState("");
 
   useEffect(() => {
     const query = new URLSearchParams();
     if (q.trim()) query.set("q", q.trim());
     if (category) query.set("category", category);
+    if (near) {
+      query.set("lat", String(near.lat));
+      query.set("lng", String(near.lng));
+    }
     if (maxKm) query.set("maxKm", maxKm);
     if (maxPrice) query.set("maxPrice", maxPrice);
     if (minRating) query.set("minRating", minRating);
@@ -340,7 +347,7 @@ export function BuscarView() {
       })
       .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "No se pudo buscar."))
       .finally(() => setLoading(false));
-  }, [q, category, maxKm, maxPrice, minRating, available, emergency, sort]);
+  }, [q, category, maxKm, maxPrice, minRating, available, emergency, sort, near]);
 
   const place = user?.clientProfile?.locationSet ? user.clientProfile.neighborhood || user.clientProfile.city || "Tu zona" : "Tu zona";
   return (
@@ -363,6 +370,31 @@ export function BuscarView() {
         }}
       />
       <div className="px-4">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          data-testid="near-me"
+          onClick={() => {
+            setError("");
+            void currentPosition()
+              .then((pos) => {
+                setNear(pos);
+                setSort("distance");
+                setNearNote("Mostramos oficios cerca de donde estás ahora. El pin público sigue siendo aproximado.");
+              })
+              .catch(() => setError("No pudimos leer tu ubicación. Revisa el permiso o agrega tu dirección en Perfil."));
+          }}
+        >
+          Cerca de mí
+        </Button>
+        {near ? (
+          <button type="button" className="text-sm font-extrabold text-clay" onClick={() => { setNear(null); setNearNote(""); }}>
+            Volver a tu dirección guardada
+          </button>
+        ) : null}
+      </div>
+      {nearNote ? <p className="mt-2 text-sm font-bold">{nearNote}</p> : null}
       <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
         <button type="button" onClick={() => setCategory("")} className={`shrink-0 rounded-full px-3 py-2 text-sm font-extrabold ${category === "" ? "bg-clay text-white" : "bg-white"}`}>Todos</button>
         {CATEGORIES.map((item) => (
@@ -406,9 +438,11 @@ export function BuscarView() {
         <NearbyMap
           testId="buscar-map"
           client={
-            user?.clientProfile?.locationSet
-              ? { lat: fuzzyCoord(user.clientProfile.lat), lng: fuzzyCoord(user.clientProfile.lng) }
-              : null
+            near
+              ? { lat: fuzzyCoord(near.lat), lng: fuzzyCoord(near.lng) }
+              : user?.clientProfile?.locationSet
+                ? { lat: fuzzyCoord(user.clientProfile.lat), lng: fuzzyCoord(user.clientProfile.lng) }
+                : null
           }
           providers={result?.providers ?? []}
         />
@@ -430,6 +464,7 @@ export function ProviderView({ id }: { id: string }) {
   const [provider, setProvider] = useState<ProviderProfile | null>(null);
   const [error, setError] = useState("");
   const [favorite, setFavorite] = useState(false);
+  const [shareNote, setShareNote] = useState("");
 
   function load() {
     api<ProviderProfile>(`/api/providers/${id}`)
@@ -473,9 +508,22 @@ export function ProviderView({ id }: { id: string }) {
         >
           {favorite ? "En favoritos" : "Guardar en favoritos"}
         </Button>
+        <Button
+          variant="secondary"
+          data-testid="share-provider"
+          onClick={() => {
+            const url = `${window.location.origin}/proveedores/${provider.id}`;
+            void shareLink({ title: provider.name, text: `${provider.name}, ${provider.trade} en Ofixio`, url }).then((result) => {
+              setShareNote(result === "copied" ? "Copiamos el enlace." : result === "shared" ? "Listo para compartir." : "No se pudo compartir desde este navegador.");
+            }).catch(() => setShareNote("No se pudo compartir."));
+          }}
+        >
+          Compartir
+        </Button>
         <Badge>{formatDistance(provider.distanceKm)}</Badge>
         {provider.availableNow ? <Badge tone="leaf">Disponible ahora</Badge> : <Badge>No disponible ahora</Badge>}
       </div>
+      {shareNote ? <p className="mt-2 text-sm font-bold">{shareNote}</p> : null}
       <p className="mt-4 text-base leading-6">{provider.bio}</p>
       <Card className="mt-4">
         <h2 className="font-extrabold">Confianza</h2>

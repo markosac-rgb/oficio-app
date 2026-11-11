@@ -13,7 +13,7 @@ import { ProviderCardView } from "@/components/provider-card";
 import { useSession } from "@/components/session";
 import { DemoBanner, DemoTag, EmptyState, ErrorState, ExampleTag, LoadingBlock } from "@/components/states";
 import { TrustList } from "@/components/trust";
-import { Badge, Button, Card, Field, Input, TextArea } from "@/components/ui";
+import { Badge, Button, Card, Dialog, Field, Input, TextArea } from "@/components/ui";
 
 function errorText(reason: unknown) {
   return reason instanceof ApiError || reason instanceof Error ? reason.message : "Intenta de nuevo.";
@@ -340,6 +340,7 @@ export function ProfileView() {
   const [nextPassword, setNextPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (!user?.clientProfile) return;
@@ -485,6 +486,33 @@ export function ProfileView() {
       >
         Cerrar sesión
       </Button>
+      <Button variant="secondary" data-testid="delete-account" onClick={() => setDeleteOpen(true)}>
+        Borrar mi cuenta
+      </Button>
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen} title="Borrar tu cuenta">
+        <p>
+          Se borra tu perfil, tus sesiones y los avisos de este celular. También se quitan las solicitudes y los mensajes ligados a esta cuenta.
+          Un pago que ya esté en Mercado Pago no se cancela aquí: la devolución se atiende en Mercado Pago.
+        </p>
+        <div className="mt-4 flex gap-2">
+          <Button variant="secondary" onClick={() => setDeleteOpen(false)}>Cancelar</Button>
+          <Button
+            variant="danger"
+            data-testid="delete-account-confirm"
+            onClick={() => {
+              void api("/api/me", { method: "DELETE" })
+                .then(() => refresh())
+                .then(() => router.push("/"))
+                .catch((reason: unknown) => {
+                  setDeleteOpen(false);
+                  setError(errorText(reason));
+                });
+            }}
+          >
+            Sí, borrar mi cuenta
+          </Button>
+        </div>
+      </Dialog>
     </div>
   );
 }

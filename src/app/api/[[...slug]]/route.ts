@@ -3,6 +3,7 @@ import {
   changePassword,
   clearSession,
   getCurrentUser,
+  deleteOwnAccount,
   loginWithGoogle,
   loginWithPassword,
   registerAccount,
@@ -31,6 +32,7 @@ import {
   decideQuote,
   deleteService,
   demoPostalCodes,
+  reversePlace,
   searchPlaces,
   getHome,
   getProvider,
@@ -57,7 +59,9 @@ import {
   updateClientLocation,
   updateProviderProfile,
 } from "@/server/domain";
+import { appleAuthConfigured, beginAppleOAuth, finishAppleOAuth, loginWithAppleIdentity } from "@/server/apple-auth";
 import { beginGoogleOAuth, finishGoogleOAuth, googleOAuthConfigured, publicOrigin } from "@/server/google-oauth";
+import { pushDeliveryConfigured, removePushDevice, savePushDevice } from "@/server/push";
 import { beginMercadoPagoConnect, finishMercadoPagoConnect } from "@/server/mp-oauth";
 import { HttpError } from "@/server/errors";
 import { prisma } from "@/lib/prisma";
@@ -91,6 +95,12 @@ async function dispatch(method: string, request: NextRequest, slug: string[]) {
   if (method === "GET" && path === "geo/cp") return lookupPostalCode(url.searchParams.get("cp") ?? "");
   if (method === "GET" && path === "geo/buscar") return searchPlaces(url.searchParams.get("q") ?? "");
   if (method === "GET" && path === "auth/google/status") return { configured: googleOAuthConfigured() };
+  if (method === "GET" && path === "auth/apple/status") {
+    return { configured: appleAuthConfigured(), bundleId: "mx.ofixio.app" };
+  }
+  if (method === "GET" && path === "geo/cerca") {
+    return reversePlace(num(url.searchParams.get("lat")) ?? Number.NaN, num(url.searchParams.get("lng")) ?? Number.NaN);
+  }
 
   if (method === "POST" && path === "auth/register") return registerAccount(await readJson(request));
   if (method === "POST" && path === "auth/login") return loginWithPassword(await readJson(request));
@@ -105,11 +115,22 @@ async function dispatch(method: string, request: NextRequest, slug: string[]) {
   if (method === "POST" && path === "auth/otp/start") return startOtp(await readJson(request));
   if (method === "POST" && path === "auth/otp/verify") return verifyOtp(await readJson(request));
   if (method === "POST" && path === "auth/google") return loginWithGoogle(await readJson(request));
+  if (method === "POST" && path === "auth/apple") return loginWithAppleIdentity(await readJson(request));
 
   const user = await getCurrentUser();
   if (!user) throw new HttpError(401, "Inicia sesión para continuar.");
 
   if (method === "PATCH" && path === "me") return updateAccount(user, await readJson(request));
+  if (method === "DELETE" && path === "me") return deleteOwnAccount(user);
+  if (method === "POST" && path === "devices/push") {
+    const body = await readJson(request);
+    return savePushDevice(user.id, String(body.token ?? ""), String(body.platform ?? ""));
+  }
+  if (method === "DELETE" && path === "devices/push") {
+    const body = await readJson(request);
+    return removePushDevice(user.id, String(body.token ?? ""));
+  }
+  if (method === "GET" && path === "devices/push/status") return { configured: pushDeliveryConfigured() };
   if (method === "PATCH" && path === "me/location") return updateClientLocation(user, await readJson(request));
   if (method === "PATCH" && path === "me/password") return changePassword(user, await readJson(request));
   if (method === "GET" && path === "home") return getHome(user);
@@ -119,6 +140,8 @@ async function dispatch(method: string, request: NextRequest, slug: string[]) {
       q: url.searchParams.get("q") ?? undefined,
       category: url.searchParams.get("category") ?? undefined,
       maxKm: num(url.searchParams.get("maxKm")),
+      lat: num(url.searchParams.get("lat")),
+      lng: num(url.searchParams.get("lng")),
       maxPrice: num(url.searchParams.get("maxPrice")),
       minRating: num(url.searchParams.get("minRating")),
       available: url.searchParams.get("available") === "1",
@@ -225,12 +248,16 @@ export async function GET(request: NextRequest, context: ApiContext) {
   const path = (slug ?? []).join("/");
   if (path === "auth/google/start") return beginGoogleOAuth(request);
   if (path === "auth/google/callback") return finishGoogleOAuth(request);
+  if (path === "auth/apple/start") return beginAppleOAuth(request);
   if (path === "provider/mercadopago/connect") return beginMercadoPagoConnect(request);
   if (path === "provider/mercadopago/callback") return finishMercadoPagoConnect(request);
   return handle("GET", request, context);
 }
 
-export function POST(request: NextRequest, context: ApiContext) {
+export async function POST(request: NextRequest, context: ApiContext) {
+  const { slug } = await context.params;
+  const path = (slug ?? []).join("/");
+  if (path === "auth/apple/callback") return finishAppleOAuth(request);
   return handle("POST", request, context);
 }
 

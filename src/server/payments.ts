@@ -3,6 +3,7 @@ import { commissionOf } from "@/lib/commission";
 import { POLICY_VERSION } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { HttpError } from "@/server/errors";
+import { sendPush } from "@/server/push";
 import {
   createCheckoutPreference,
   fetchRemotePayment,
@@ -24,6 +25,7 @@ async function notify(userId: string, title: string, body: string, href: string)
   await prisma.notification.create({
     data: { id: randomUUID(), userId, title, body: body.slice(0, 180), href },
   });
+  await sendPush(userId, title, body, href);
 }
 
 async function sellerAccessToken(providerId: string) {

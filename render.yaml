@@ -34,3 +34,17 @@ services:
         sync: false
       - key: MP_CLIENT_SECRET
         sync: false
+      - key: FCM_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: APNS_SANDBOX
+        sync: false
+      - key: APPLE_CLIENT_ID
+        sync: false
+      - key: APPLE_TEAM_ID
+        sync: false
+      - key: APPLE_KEY_ID
+        sync: false
+      - key: APPLE_PRIVATE_KEY
+        sync: false
+      - key: APPLE_BUNDLE_ID
+        sync: false

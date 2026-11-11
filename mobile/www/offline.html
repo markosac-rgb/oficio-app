@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es-MX">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Ofixio</title>
+    <style>
+      html, body { margin: 0; height: 100%; }
+      body {
+        display: grid;
+        place-items: center;
+        background: #062f35;
+        color: #f4f7f2;
+        font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+        text-align: center;
+        padding: 24px;
+      }
+      main { max-width: 22rem; }
+      img { width: 96px; height: 96px; }
+      h1 { font-size: 1.6rem; margin: 16px 0 8px; }
+      p { line-height: 1.45; color: #d5e4df; }
+      button {
+        margin-top: 20px;
+        border: 0;
+        border-radius: 16px;
+        background: #b5e61d;
+        color: #062f35;
+        font-weight: 800;
+        font-size: 1rem;
+        min-height: 48px;
+        padding: 0 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="icono.svg" alt="Ofixio" />
+      <h1>Ofixio</h1>
+      <p>Lo arreglamos por ti. Ahora mismo no hay conexión con el servicio. Revisa tu internet y vuelve a intentar.</p>
+      <button type="button" onclick="location.reload()">Reintentar</button>
+    </main>
+  </body>
+</html>

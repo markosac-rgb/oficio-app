@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import type { Prisma } from "@prisma/client";
-import { listDemoCodes, lookupPostalCode as geocodePostalCode, searchPlaces as geocodePlaces } from "@/adapters/geocoding";
+import { listDemoCodes, lookupPostalCode as geocodePostalCode, reversePlace as geocodeReverse, searchPlaces as geocodePlaces } from "@/adapters/geocoding";
 import { demoIdentityAdapter } from "@/adapters/identity";
 import { demoPaymentAdapter } from "@/adapters/payments";
 import { commissionOf, commissionPct } from "@/lib/commission";
@@ -24,6 +24,7 @@ import { displayName } from "@/lib/format";
 import { distanceKm, fuzzyCoord } from "@/lib/geo";
 import { prisma } from "@/lib/prisma";
 import { mpConfigured, mpOAuthConfigured, mpTestMode, startMercadoPagoCheckout, syncMercadoPagoPayment } from "@/server/payments";
+import { sendPush } from "@/server/push";
 import { demoDataEnabled, setDemoDataEnabled } from "@/server/settings";
 import { statusHeadline } from "@/lib/status";
 import type {
@@ -130,6 +131,7 @@ async function notify(userId: string, title: string, body: string, href: string)
   await prisma.notification.create({
     data: { id: randomUUID(), userId, title, body: body.slice(0, 180), href },
   });
+  await sendPush(userId, title, body, href);
 }
 
 function toCard(provider: ProviderBundle, origin: { lat: number; lng: number } | null): ProviderCard {
@@ -174,6 +176,8 @@ export async function searchProviders(user: AppUser | null, filters: {
   emergency?: boolean;
   sort?: "distance" | "price" | "rating";
   ids?: string[];
+  lat?: number;
+  lng?: number;
 }) {
   const showExamples = await demoDataEnabled();
   const providers = await prisma.providerProfile.findMany({
@@ -185,7 +189,10 @@ export async function searchProviders(user: AppUser | null, filters: {
     },
     include: providerBundle,
   });
-  const origin = originOf(user);
+  const origin =
+    filters.lat != null && filters.lng != null && Number.isFinite(filters.lat) && Number.isFinite(filters.lng)
+      ? { lat: filters.lat, lng: filters.lng }
+      : originOf(user);
   const query = normalizeText(filters.q ?? "");
   const hinted = PROBLEM_HINTS.filter((hint) =>
     hint.words.some((word) => query.includes(normalizeText(word))),
@@ -1777,6 +1784,10 @@ export async function lookupPostalCode(cp: string) {
 
 export async function searchPlaces(query: string) {
   return geocodePlaces(query);
+}
+
+export async function reversePlace(lat: number, lng: number) {
+  return geocodeReverse(lat, lng);
 }
 
 export async function demoPostalCodes() {

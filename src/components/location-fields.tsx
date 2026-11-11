@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { currentPosition } from "@/lib/native";
 import { fuzzyCoord } from "@/lib/geo";
 import { Button, Field, Input } from "@/components/ui";
 import { DemoBanner } from "@/components/states";
@@ -159,6 +160,27 @@ export function LocationFields({
           </Field>
         </>
       ) : null}
+      <Button
+        type="button"
+        variant="secondary"
+        data-testid="use-my-location"
+        disabled={busy}
+        onClick={() => {
+          setBusy(true);
+          void currentPosition()
+            .then(async (pos) => {
+              const result = await api<GeoResponse>(`/api/geo/cerca?lat=${encodeURIComponent(String(pos.lat))}&lng=${encodeURIComponent(String(pos.lng))}`);
+              setSimulated(result.simulated);
+              setHint(result.note);
+              if (result.places[0]) applyPlace({ ...result.places[0], lat: pos.lat, lng: pos.lng });
+              else onChange({ ...value, lat: pos.lat, lng: pos.lng });
+            })
+            .catch(() => setHint("No pudimos usar tu ubicación. Escribe colonia y código postal."))
+            .finally(() => setBusy(false));
+        }}
+      >
+        Usar mi ubicación
+      </Button>
       <div>
         <p className="mb-1.5 text-sm font-extrabold">Ajustar el pin</p>
         <PinMap lat={value.lat} lng={value.lng} onMove={(lat, lng) => onChange({ ...value, lat, lng })} />

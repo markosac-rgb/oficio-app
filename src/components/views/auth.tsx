@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { appleNativeSignIn, isNativeApp } from "@/lib/native";
 import { SIMPLIFIED_NOTICE } from "@/lib/legal-copy";
 import { useSession } from "@/components/session";
 import { LegalFooter } from "@/components/legal-footer";
@@ -61,6 +62,7 @@ export function LoginScreen() {
   const { refresh } = useSession();
   const [mode, setMode] = useState<"password" | "code" | "google">("password");
   const [googleReady, setGoogleReady] = useState(false);
+  const [appleReady, setAppleReady] = useState(false);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
@@ -77,6 +79,9 @@ export function LoginScreen() {
     api<{ configured: boolean }>("/api/auth/google/status")
       .then((result) => setGoogleReady(result.configured))
       .catch(() => setGoogleReady(false));
+    api<{ configured: boolean }>("/api/auth/apple/status")
+      .then((result) => setAppleReady(result.configured))
+      .catch(() => setAppleReady(false));
   }, []);
 
   async function enter(path: string, body: unknown) {
@@ -195,6 +200,18 @@ export function LoginScreen() {
           )}
         </div>
       ) : null}
+      {appleReady ? (
+        <div className="mt-4 space-y-3">
+          <h2 className="font-extrabold">Iniciar sesión con Apple</h2>
+          <LegalChecks accepted={accepted} secondary={secondary} onAccepted={setAccepted} onSecondary={setSecondary} />
+          <Button className="w-full" data-testid="apple-login" disabled={busy} onClick={() => void startApple("CLIENT")}>
+            Continuar con Apple como cliente
+          </Button>
+          <Button className="w-full" variant="secondary" disabled={busy} onClick={() => void startApple("PROVIDER")}>
+            Continuar con Apple como proveedor
+          </Button>
+        </div>
+      ) : null}
       <details className="mt-6 rounded-2xl bg-white p-3" data-testid="demo-accounts">
         <summary className="cursor-pointer font-extrabold">Cuentas demo</summary>
         <ul className="mt-2 space-y-1 text-sm leading-6">
@@ -225,6 +242,32 @@ export function LoginScreen() {
       return;
     }
     void enter("/api/auth/google", { role, acceptedRules: true, acceptedSecondaryPurposes: secondary });
+  }
+
+  async function startApple(role: "CLIENT" | "PROVIDER") {
+    if (!accepted) {
+      setError("Acepta los términos y condiciones y el aviso de privacidad para continuar.");
+      return;
+    }
+    if (await isNativeApp()) {
+      try {
+        const result = await appleNativeSignIn();
+        await enter("/api/auth/apple", {
+          identityToken: result.response.identityToken,
+          givenName: result.response.givenName,
+          familyName: result.response.familyName,
+          email: result.response.email,
+          role,
+          acceptedRules: true,
+          acceptedSecondaryPurposes: secondary,
+        });
+      } catch (reason) {
+        setError(messageOf(reason));
+      }
+      return;
+    }
+    const params = new URLSearchParams({ role, acepto: "1", secundarias: secondary ? "1" : "0" });
+    window.location.href = `/api/auth/apple/start?${params.toString()}`;
   }
 }
 

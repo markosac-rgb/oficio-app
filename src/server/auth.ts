@@ -344,6 +344,94 @@ export async function updateAccount(user: AppUser, input: Record<string, unknown
   return { user: toAccount(updated) };
 }
 
+export async function establishAppleUser(profile: {
+  sub: string;
+  email: string;
+  name: string;
+  role: "CLIENT" | "PROVIDER";
+  legalAccepted?: boolean;
+  secondary?: boolean;
+}) {
+  let user = await prisma.user.findUnique({ where: { appleSub: profile.sub }, include: userInclude });
+  if (!user && profile.email) {
+    user = await prisma.user.findUnique({ where: { email: profile.email }, include: userInclude });
+    if (user?.appleSub && user.appleSub !== profile.sub) {
+      throw new HttpError(409, "Ese correo ya está ligado a otra entrada con Apple.");
+    }
+    if (user && !user.appleSub) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { appleSub: profile.sub },
+        include: userInclude,
+      });
+    }
+  }
+  if (!user) {
+    if (!profile.legalAccepted) {
+      throw new HttpError(400, "Acepta los términos y condiciones y el aviso de privacidad para continuar.");
+    }
+    const name = profile.name.trim() || "Cuenta de Apple";
+    user = await prisma.user.create({
+      data: {
+        id: randomUUID(),
+        role: profile.role,
+        name: name.slice(0, 80),
+        email: profile.email || null,
+        appleSub: profile.sub,
+        authNote: "Entró con Apple.",
+        acceptedRulesAt: new Date(),
+        acceptedLegalVersion: LEGAL_VERSION,
+        acceptedSecondaryPurposes: profile.secondary === true,
+        clientProfile: profile.role === "CLIENT" ? { create: {} } : undefined,
+        providerProfile:
+          profile.role === "PROVIDER"
+            ? {
+                create: {
+                  id: randomUUID(),
+                  scheduleJson: JSON.stringify(DEFAULT_SCHEDULE),
+                  cancellationPolicy: "Trabajo con las reglas de cancelación de Ofixio.",
+                },
+              }
+            : undefined,
+      },
+      include: userInclude,
+    });
+  }
+  if (!user) throw new HttpError(500, "No se pudo abrir la sesión.");
+  if (user.suspended) throw new HttpError(403, "Esta cuenta está suspendida. Escribe desde Ayuda.");
+  const token = await saveSession(user.id);
+  return { user, token };
+}
+
+export async function deleteOwnAccount(user: AppUser) {
+  await prisma.$transaction(
+    async (tx) => {
+      const ownRequests = await tx.serviceRequest.findMany({ where: { clientId: user.id }, select: { id: true } });
+      const requestIds = ownRequests.map((item) => item.id);
+      if (requestIds.length > 0) {
+        await tx.report.deleteMany({ where: { requestId: { in: requestIds } } });
+      }
+      await tx.report.deleteMany({ where: { OR: [{ reporterId: user.id }, { targetUserId: user.id }] } });
+      if (user.providerProfile) {
+        await tx.quote.deleteMany({ where: { providerId: user.providerProfile.id } });
+        await tx.review.deleteMany({ where: { providerId: user.providerProfile.id } });
+      }
+      await tx.review.deleteMany({ where: { authorId: user.id } });
+      if (requestIds.length > 0) {
+        await tx.serviceRequest.deleteMany({ where: { id: { in: requestIds } } });
+      }
+      await tx.message.deleteMany({ where: { senderId: user.id } });
+      if (user.providerProfile) {
+        await tx.providerProfile.delete({ where: { id: user.providerProfile.id } });
+      }
+      await tx.user.delete({ where: { id: user.id } });
+    },
+    { timeout: 20_000 },
+  );
+  await clearSession();
+  return { ok: true };
+}
+
 export async function changePassword(user: AppUser, input: Record<string, unknown>) {
   if (!user.passwordHash) {
     throw new HttpError(400, "Esta cuenta no tiene contraseña. Entró con un acceso simulado.");

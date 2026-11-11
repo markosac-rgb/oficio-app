@@ -124,6 +124,13 @@ Variables en Render:
 | `MP_CLIENT_ID` | opcional. Junto con el secreto, enciende «Conectar Mercado Pago» para el proveedor. |
 | `MP_CLIENT_SECRET` | opcional |
 | `OFIXIO_COMMISSION_PCT` | Porcentaje de comisión. `0` por defecto. `10` es 10% del precio acordado, no un cargo extra. Solo se manda como `marketplace_fee` si el proveedor conectó su cuenta. |
+| `FCM_SERVICE_ACCOUNT_JSON` | opcional. JSON de la cuenta de servicio de Firebase, en una línea. Sin él no se envían avisos push de Android. |
+| `APNS_SANDBOX` | opcional. `1` solo para builds de desarrollo de iOS. En la tienda déjalo vacío. |
+| `APPLE_CLIENT_ID` | opcional. Services ID de Sign in with Apple. Si falta, junto con las otras tres, el botón no aparece. |
+| `APPLE_TEAM_ID` | opcional. Team ID de Apple Developer. |
+| `APPLE_KEY_ID` | opcional. Key ID de la llave .p8. |
+| `APPLE_PRIVATE_KEY` | opcional. Contenido del .p8. En Render puedes usar `\n` en lugar de saltos de línea. |
+| `APPLE_BUNDLE_ID` | opcional. Por defecto `mx.ofixio.app`. |
 
 Un administrador puede ocultar los perfiles de ejemplo en Administración. Mientras se muestran, la franja de cifras y las tarjetas dicen «Datos de ejemplo». Los números salen de la base: una cuenta real los aumenta. Si los ejemplos se ocultan, la franja cuenta solo personas reales.
 
@@ -175,6 +182,12 @@ URL de retorno de OAuth, si el proveedor conecta su cuenta:
 `https://oficio-app.onrender.com/api/provider/mercadopago/callback`
 
 Las `back_urls` del checkout vuelven a `https://oficio-app.onrender.com/solicitudes/{id}/pago`. El estado del pago se confirma consultando la API de Mercado Pago; no se cree al parámetro `status` de la URL.
+
+## Apps de iOS y Android
+
+La carpeta nativa es Capacitor (`mx.ofixio.app`). La app abre `OFICIO_PUBLIC_URL` y, si no hay red, muestra `mobile/www/offline.html`. Cómo crear las cuentas de las tiendas, firmar, subir y qué decirle al revisor está en `docs/mobile/PUBLICAR.md`.
+
+Sin `FCM_SERVICE_ACCOUNT_JSON` no salen avisos push. Sin `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID` y `APPLE_PRIVATE_KEY` no aparece Iniciar sesión con Apple. Los pagos de servicios en casa siguen en Mercado Pago.
 
 ## App nativa más adelante
 

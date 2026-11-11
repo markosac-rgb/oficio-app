@@ -167,6 +167,12 @@ export const TRUST_LINES = [
 
 export const INTEGRATIONS = [
   {
+    id: "app",
+    name: "App de iOS y Android",
+    needed: "Cuentas de Apple Developer y Google Play. Push: FCM_SERVICE_ACCOUNT_JSON y, en iOS, la llave de Apple. Entrar con Apple: APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID y APPLE_PRIVATE_KEY.",
+    now: "La app nativa abre este sitio. Sin esas credenciales no hay push ni botón de Apple, y el resto sigue igual. Los pagos de servicios en casa siguen en Mercado Pago.",
+  },
+  {
     id: "pagos",
     name: "Pagos",
     needed: "MP_ACCESS_TOKEN de Mercado Pago México. Opcional: MP_WEBHOOK_SECRET y, para la comisión partida, MP_CLIENT_ID y MP_CLIENT_SECRET.",

@@ -1,0 +1,76 @@
+name: Apps móviles
+
+on:
+  workflow_dispatch:
+
+jobs:
+  android-aab:
+    name: Android AAB
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - name: Sincronizar Capacitor
+        run: npx cap sync android
+        env:
+          OFICIO_PUBLIC_URL: https://oficio-app.onrender.com
+      - name: Keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/ofixio-release.keystore
+      - name: Compilar AAB
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: ofixio-release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ofixio-release-aab
+          path: android/app/build/outputs/bundle/release/*.aab
+
+  ios:
+    name: iOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Sincronizar Capacitor
+        run: npx cap sync ios
+        env:
+          OFICIO_PUBLIC_URL: https://oficio-app.onrender.com
+      - name: Certificado y perfil
+        env:
+          IOS_CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+        run: |
+          echo "$IOS_CERTIFICATE_BASE64" | base64 -d > /tmp/ofixio.p12
+          echo "$IOS_PROVISION_PROFILE_BASE64" | base64 -d > /tmp/ofixio.mobileprovision
+          security create-keychain -p actions build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p actions build.keychain
+          security import /tmp/ofixio.p12 -k build.keychain -P "$IOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k actions build.keychain
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp /tmp/ofixio.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+      - name: Archivo de Xcode
+        working-directory: ios/App
+        run: |
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' -archivePath "$GITHUB_WORKSPACE/Ofixio.xcarchive" archive CODE_SIGN_STYLE=Manual
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ofixio-ios-archive
+          path: Ofixio.xcarchive

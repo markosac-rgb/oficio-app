@@ -22,12 +22,14 @@ model User {
   acceptedRulesAt            DateTime?
   acceptedLegalVersion       String   @default("")
   acceptedSecondaryPurposes  Boolean  @default(false)
+  appleSub        String?   @unique
   createdAt       DateTime  @default(now())
 
   clientProfile   ClientProfile?
   providerProfile ProviderProfile?
   sessions        Session[]
   notifications   Notification[]
+  pushDevices     PushDevice[]
   messages        Message[]
   reviews         Review[]
   favorites       Favorite[]
@@ -286,6 +288,18 @@ model Favorite {
   createdAt  DateTime @default(now())
 
   @@unique([userId, providerId])
+}
+
+model PushDevice {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Notification {
